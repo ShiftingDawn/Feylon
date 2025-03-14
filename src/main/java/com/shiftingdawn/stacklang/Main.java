@@ -6,13 +6,13 @@ public final class Main {
 
 	public static void main(String[] args) {
 		final Stack stack = new Stack();
-		String program = "1 2 + .";
+		String program = "1 2 + 3 * .";
 		Object[] parsed = parseProgram(program);
 		System.out.println(Arrays.toString(parsed));
 		for (Object symbol : parsed) {
 			switch (symbol) {
 				case Double d -> stack.push(d);
-				case Op op -> Operator.apply(stack, op);
+				case Ops op -> op.apply(stack);
 				default -> throw new IllegalStateException("Unexpected value: " + symbol);
 			}
 		}
@@ -27,7 +27,7 @@ public final class Main {
 				double d = Double.parseDouble(word);
 				result[i] = d;
 			} catch (NumberFormatException ignored) {
-				Op op = Op.parse(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
+				Ops op = Ops.parse(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
 				result[i] = op;
 			}
 		}
