@@ -6,9 +6,9 @@ import com.shiftingdawn.stacklang.Stack;
 public class SubtractOp implements Op {
 
 	@Override
-	public void apply(Stack stack) {
-		double a = stack.pop();
-		double b = stack.pop();
+	public void apply(final Stack stack, final Object token) {
+		final double a = stack.pop();
+		final double b = stack.pop();
 		stack.add(b - a);
 	}
 }

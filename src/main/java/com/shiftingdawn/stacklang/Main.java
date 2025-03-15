@@ -1,34 +1,28 @@
 package com.shiftingdawn.stacklang;
 
-import java.util.Arrays;
-
 public final class Main {
 
-	public static void main(String[] args) {
+	public static void main(final String[] args) {
 		final Stack stack = new Stack();
-		String program = "1 2 + 3 * .";
-		Object[] parsed = parseProgram(program);
-		System.out.println(Arrays.toString(parsed));
-		for (Object symbol : parsed) {
-			switch (symbol) {
-				case Double d -> stack.push(d);
-				case Ops op -> op.apply(stack);
-				default -> throw new IllegalStateException("Unexpected value: " + symbol);
-			}
+		final String program = "1 2 + 3 * .";
+		final Instruction[] parsed = Main.parseProgram(program);
+		for (final Instruction instruction : parsed) {
+			final Tuple<Ops, Object> op = instruction.op();
+			op.a().apply(stack, op.b());
 		}
 	}
 
-	public static Object[] parseProgram(String program) {
-		String[] words = program.split("[\\s\\n]+");
-		Object[] result = new Object[words.length];
+	public static Instruction[] parseProgram(final String program) {
+		final String[] words = program.split("[\\s\\n]+");
+		final Instruction[] result = new Instruction[words.length];
 		for (int i = 0; i < words.length; ++i) {
 			final String word = words[i];
 			try {
-				double d = Double.parseDouble(word);
-				result[i] = d;
-			} catch (NumberFormatException ignored) {
-				Ops op = Ops.parse(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
-				result[i] = op;
+				final double d = Double.parseDouble(word);
+				result[i] = new Instruction(new Tuple<>(Ops.OP_PUSH, d), i, i + 1);
+			} catch (final NumberFormatException ignored) {
+				final Ops op = Ops.parse(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
+				result[i] = new Instruction(new Tuple<>(op, word), i, i + 1);
 			}
 		}
 		return result;

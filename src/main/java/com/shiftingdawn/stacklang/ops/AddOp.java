@@ -6,7 +6,7 @@ import com.shiftingdawn.stacklang.Stack;
 public class AddOp implements Op {
 
 	@Override
-	public void apply(Stack stack) {
+	public void apply(final Stack stack, final Object token) {
 		stack.add(stack.pop() + stack.pop());
 	}
 }
