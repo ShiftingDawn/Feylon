@@ -2,11 +2,12 @@ package com.shiftingdawn.stacklang;
 
 public class Stack {
 
-	private int[] stack = new int[64];
+	public static final int DEFAULT_STACK_SIZE = 64;
+	private int[] stack = new int[Stack.DEFAULT_STACK_SIZE];
 	private int pointer = -1;
 
 	private void ensureSize() {
-		if (this.pointer == this.stack.length) {
+		if (this.pointer + 1 == this.stack.length) {
 			final int[] currentStack = this.stack;
 			this.stack = new int[this.stack.length * 2];
 			System.arraycopy(currentStack, 0, this.stack, 0, currentStack.length);

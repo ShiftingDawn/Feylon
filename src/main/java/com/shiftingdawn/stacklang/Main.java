@@ -13,9 +13,13 @@ public final class Main {
 		final ProgramTuple[] parsed = Main.parseProgram(program);
 		final Instruction[] instructions = Main.makeInstructions(parsed);
 
+		simulate(stack, instructions);
+	}
+
+	public static void simulate(Stack stack, Instruction[] program) {
 		int pointer = 0;
-		while (pointer < instructions.length) {
-			final Instruction instruction = instructions[pointer];
+		while (pointer < program.length) {
+			final Instruction instruction = program[pointer];
 			if (instruction instanceof ConditionalJumpInstruction) {
 				final int x = stack.pop();
 				if (x == 0) {
