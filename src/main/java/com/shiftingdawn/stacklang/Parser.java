@@ -1,6 +1,9 @@
 package com.shiftingdawn.stacklang;
 
-import com.shiftingdawn.stacklang.instruction.*;
+import com.shiftingdawn.stacklang.ins.*;
+import com.shiftingdawn.stacklang.ins.jump.*;
+import com.shiftingdawn.stacklang.ins.mem.MemGetInstruction;
+import com.shiftingdawn.stacklang.ins.mem.MemSetInstruction;
 
 import java.util.Optional;
 

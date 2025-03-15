@@ -1,12 +1,12 @@
-package com.shiftingdawn.stacklang.instruction;
+package com.shiftingdawn.stacklang.ins;
 
 import com.shiftingdawn.stacklang.Instruction;
 import com.shiftingdawn.stacklang.Stack;
 
-public class MultiplyInstruction implements Instruction {
+public class AddInstruction implements Instruction {
 
 	@Override
 	public void apply(final Stack stack) {
-		stack.push(stack.pop() * stack.pop());
+		stack.push(stack.pop() + stack.pop());
 	}
 }

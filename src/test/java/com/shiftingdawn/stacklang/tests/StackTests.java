@@ -2,7 +2,7 @@ package com.shiftingdawn.stacklang.tests;
 
 import com.shiftingdawn.stacklang.Stack;
 import com.shiftingdawn.stacklang.StackUnderflowError;
-import com.shiftingdawn.stacklang.instruction.DupInstruction;
+import com.shiftingdawn.stacklang.ins.DupInstruction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

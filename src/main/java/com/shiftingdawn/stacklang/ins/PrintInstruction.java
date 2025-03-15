@@ -1,11 +1,12 @@
-package com.shiftingdawn.stacklang.instruction;
+package com.shiftingdawn.stacklang.ins;
 
 import com.shiftingdawn.stacklang.Instruction;
 import com.shiftingdawn.stacklang.Stack;
 
-public class NoopInstruction implements Instruction {
+public class PrintInstruction implements Instruction {
 
 	@Override
 	public void apply(final Stack stack) {
+		System.out.println(stack.pop());
 	}
 }

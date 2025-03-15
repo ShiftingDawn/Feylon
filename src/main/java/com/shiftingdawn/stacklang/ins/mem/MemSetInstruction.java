@@ -1,4 +1,4 @@
-package com.shiftingdawn.stacklang.instruction;
+package com.shiftingdawn.stacklang.ins.mem;
 
 import com.shiftingdawn.stacklang.Memory;
 import com.shiftingdawn.stacklang.MemoryInstruction;

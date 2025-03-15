@@ -1,4 +1,4 @@
-package com.shiftingdawn.stacklang.instruction;
+package com.shiftingdawn.stacklang.ins.jump;
 
 import com.shiftingdawn.stacklang.JumpInstruction;
 import com.shiftingdawn.stacklang.Stack;
