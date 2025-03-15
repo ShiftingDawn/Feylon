@@ -4,7 +4,7 @@ public final class Main {
 
 	public static void main(final String[] args) {
 		final Stack stack = new Stack();
-		final String program = "1 2 + 3 * .";
+		final String program = "1 2 + 3 * 9 = .";
 		final Instruction[] parsed = Main.parseProgram(program);
 		for (final Instruction instruction : parsed) {
 			final Tuple<Ops, Object> op = instruction.op();

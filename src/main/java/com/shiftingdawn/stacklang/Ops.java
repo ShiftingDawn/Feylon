@@ -10,6 +10,7 @@ public enum Ops {
 
 	OP_PUSH(null, 0, PushOp::new),
 	OP_PRINT(".", 1, PrintOp::new),
+	OP_EQUALS("=", 2, EqualsOp::new),
 	OP_ADD("+", 2, AddOp::new),
 	OP_SUBTRACT("-", 2, SubtractOp::new),
 	OP_MULTIPLY("*", 2, MultiplyOp::new),
