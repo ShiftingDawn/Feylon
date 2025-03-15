@@ -66,7 +66,7 @@ public final class Main {
 							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
 						}
 						tuple.data = i;
-						result[i] = new ProgramTuple(Ops.NOOP, null);
+						result[i] = new ProgramTuple(Ops.OP_END, i + 1);
 						continue;
 					}
 					default -> {
@@ -96,7 +96,7 @@ public final class Main {
 				case OP_DIVIDE -> new DivideInstruction();
 				case OP_IF -> new IfInstruction((Integer) program[pointer].data);
 				case OP_ELSE -> new ElseInstruction((Integer) program[pointer].data);
-				case OP_END -> throw new AssertionError("If you see this, the parsing of the program is broken");
+				case OP_END -> new EndInstruction((Integer) program[pointer].data);
 			};
 			result[pointer] = ins;
 		}
