@@ -5,17 +5,22 @@ import com.shiftingdawn.stacklang.ins.jump.*;
 import com.shiftingdawn.stacklang.ins.mem.MemGetInstruction;
 import com.shiftingdawn.stacklang.ins.mem.MemSetInstruction;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Optional;
 
 public class Parser {
 
-	public static Instruction[] parse(final String program) {
+	public static Instruction[] parse(final Collection<String> program) {
 		return Parser.makeInstructions(Parser.makeTuples(program));
 	}
 
-	private static ProgramTuple[] makeTuples(final String program) {
+	private static ProgramTuple[] makeTuples(final Collection<String> program) {
 		final Stack instructionStack = new Stack();
-		final String[] words = program.split("[\\s\\n]+");
+		final String[] words = program.stream()
+				.map(line -> line.split("//", 2)[0])
+				.flatMap(line -> Arrays.stream(line.split("\\s+")))
+				.toArray(String[]::new);
 		final ProgramTuple[] result = new ProgramTuple[words.length];
 		for (int i = 0; i < words.length; ++i) {
 			final String word = words[i];

@@ -28,8 +28,7 @@ public final class Main {
 			}
 			try {
 				final List<String> lines = Files.readAllLines(f.toPath());
-				final String program = String.join("\n", lines);
-				final Instruction[] instructions = Parser.parse(program);
+				final Instruction[] instructions = Parser.parse(lines);
 				new Simulator().execute(instructions);
 			} catch (final IOException e) {
 				System.err.println("Could not read file");

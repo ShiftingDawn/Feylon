@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -64,7 +65,7 @@ public class MemoryTests {
 
 	@Test
 	public void testMemSetInstruction() {
-		final Instruction[] program = Parser.parse("0 1 memset 10 10 memset");
+		final Instruction[] program = Parser.parse(List.of("0 1 memset 10 10 memset"));
 		new Simulator(new Stack(), this.memory).execute(program);
 		assertEquals(1, this.memory.get(0));
 		assertEquals(10, this.memory.get(10));
@@ -74,7 +75,7 @@ public class MemoryTests {
 	public void testMemGetInstruction() {
 		this.array[0] = 1;
 		this.array[10] = 10;
-		final Instruction[] program = Parser.parse("0 memget 10 memget");
+		final Instruction[] program = Parser.parse(List.of("0 memget 10 memget"));
 		final Stack stack = new Stack();
 		new Simulator(stack, this.memory).execute(program);
 		assertEquals(10, stack.pop());

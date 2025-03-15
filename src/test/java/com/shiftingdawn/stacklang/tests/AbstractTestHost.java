@@ -4,6 +4,8 @@ import com.shiftingdawn.stacklang.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
+import java.util.List;
+
 public abstract class AbstractTestHost {
 
 	protected Stack stack;
@@ -17,7 +19,7 @@ public abstract class AbstractTestHost {
 	public void run(final String program) {
 		this.stack = new Stack();
 		this.memory = new Memory();
-		final Instruction[] compiled = Parser.parse(program);
+		final Instruction[] compiled = Parser.parse(List.of(program));
 		new Simulator(this.stack, this.memory).execute(compiled);
 	}
 
