@@ -8,15 +8,15 @@ public final class Main {
 
 	public static void main(final String[] args) {
 		final Stack stack = new Stack();
-		final String program = "1 1 + 2 = if 0 if 69 . end 420 . end";
+		final String program = "1 1 + 2 = if 0 if 69 . else 6969 . end 420 . end";
 
 		final ProgramTuple[] parsed = Main.parseProgram(program);
 		final Instruction[] instructions = Main.makeInstructions(parsed);
 
-		simulate(stack, instructions);
+		Main.simulate(stack, instructions);
 	}
 
-	public static void simulate(Stack stack, Instruction[] program) {
+	public static void simulate(final Stack stack, final Instruction[] program) {
 		int pointer = 0;
 		while (pointer < program.length) {
 			final Instruction instruction = program[pointer];
@@ -52,24 +52,26 @@ public final class Main {
 			}
 			final Optional<Ops> op = Ops.getBySymbol(word);
 			if (op.isPresent()) {
-				result[i] = new ProgramTuple(op.get(), word);
-				continue;
-			}
-			switch (word) {
-				case "if" -> {
-					instructionStack.push(i);
-					result[i] = new ProgramTuple(Ops.OP_IF, null);
-					continue;
-				}
-				case "end" -> {
-					final int pointer = instructionStack.pop();
-					final ProgramTuple tuple = result[pointer];
-					if (tuple.op != Ops.OP_IF) {
-						throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
+				switch (op.get()) {
+					case OP_IF -> {
+						instructionStack.push(i);
+						result[i] = new ProgramTuple(Ops.OP_IF, null);
+						continue;
 					}
-					tuple.data = i;
-					result[i] = new ProgramTuple(Ops.NOOP, null);
-					continue;
+					case OP_END -> {
+						final int pointer = instructionStack.pop();
+						final ProgramTuple tuple = result[pointer];
+						if (tuple.op != Ops.OP_IF) {
+							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
+						}
+						tuple.data = i;
+						result[i] = new ProgramTuple(Ops.NOOP, null);
+						continue;
+					}
+					default -> {
+						result[i] = new ProgramTuple(op.get(), word);
+						continue;
+					}
 				}
 			}
 			throw new AssertionError("Unhandled operation: " + word);
