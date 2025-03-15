@@ -8,6 +8,7 @@ public enum Ops {
 	NOOP,
 	OP_PUSH,
 	OP_POP("pop"),
+	OP_DUP("dup"),
 	OP_PRINT('.'),
 	OP_EQUALS('='),
 	OP_ADD('+'),

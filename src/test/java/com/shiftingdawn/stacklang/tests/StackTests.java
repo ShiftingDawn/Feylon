@@ -2,6 +2,7 @@ package com.shiftingdawn.stacklang.tests;
 
 import com.shiftingdawn.stacklang.Stack;
 import com.shiftingdawn.stacklang.StackUnderflowError;
+import com.shiftingdawn.stacklang.instruction.DupInstruction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -86,6 +87,16 @@ public class StackTests {
 	@Test
 	public void testPopEmpty() {
 		assertThrows(StackUnderflowError.class, this.stack::pop);
+	}
+
+	@Test
+	public void testDup() {
+		assertEquals(-1, this.pointer.getAsInt());
+		this.stack.push(1);
+		assertEquals(0, this.pointer.getAsInt());
+		new DupInstruction().apply(this.stack);
+		assertEquals(1, this.pointer.getAsInt());
+		assertEquals(1, this.array.get()[1]);
 	}
 
 	@BeforeEach
