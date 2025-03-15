@@ -3,16 +3,9 @@ package com.shiftingdawn.stacklang.instruction;
 import com.shiftingdawn.stacklang.Instruction;
 import com.shiftingdawn.stacklang.Stack;
 
-public class PushInstruction implements Instruction {
-
-	private final int x;
-
-	public PushInstruction(final int x) {
-		this.x = x;
-	}
+public class NoopInstruction implements Instruction {
 
 	@Override
 	public void apply(final Stack stack) {
-		stack.push(this.x);
 	}
 }

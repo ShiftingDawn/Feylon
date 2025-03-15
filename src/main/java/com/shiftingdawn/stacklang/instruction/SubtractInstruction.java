@@ -6,7 +6,7 @@ import com.shiftingdawn.stacklang.Stack;
 public class SubtractInstruction implements Instruction {
 
 	@Override
-	public void apply(final Stack stack, final Object token) {
+	public void apply(final Stack stack) {
 		final int a = stack.pop();
 		final int b = stack.pop();
 		stack.push(b - a);

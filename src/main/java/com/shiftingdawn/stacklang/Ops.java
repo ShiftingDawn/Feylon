@@ -5,13 +5,16 @@ import java.util.Optional;
 
 public enum Ops {
 
+	NOOP,
 	OP_PUSH,
 	OP_PRINT('.'),
 	OP_EQUALS('='),
 	OP_ADD('+'),
 	OP_SUBTRACT('-'),
 	OP_MULTIPLY('*'),
-	OP_DIVIDE('/');
+	OP_DIVIDE('/'),
+	OP_IF,
+	OP_END;
 
 	private static final Ops[] OPS_WITH_SYMBOL = Arrays.stream(Ops.values())
 			.filter(op -> op.symbol != null)

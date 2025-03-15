@@ -2,5 +2,5 @@ package com.shiftingdawn.stacklang;
 
 public interface Instruction {
 
-	void apply(Stack stack, Object token);
+	void apply(Stack stack);
 }
