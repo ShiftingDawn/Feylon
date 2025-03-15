@@ -73,7 +73,8 @@ public class ConditionTests extends AbstractTestHost {
 	}
 
 	@Test
-	public void testIfElseFalse() {
-		this.run("1 2 + 4 = if 3 else 4 end");
+	public void testWhile() {
+		this.run("5 while dup 0 > do dup . 1 - end");
+		this.assertStack(0);
 	}
 }

@@ -20,9 +20,11 @@ public enum Ops {
 	OP_SUBTRACT('-'),
 	OP_MULTIPLY('*'),
 	OP_DIVIDE('/'),
+	OP_END("end"),
 	OP_IF("if"),
 	OP_ELSE("else"),
-	OP_END("end");
+	OP_WHILE("while"),
+	OP_DO("do");
 
 	private static final Ops[] OPS_WITH_SYMBOL = Arrays.stream(Ops.values())
 			.filter(op -> op.symbol != null)

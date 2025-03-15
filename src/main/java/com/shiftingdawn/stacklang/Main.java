@@ -43,6 +43,20 @@ public final class Main {
 			final Optional<Ops> op = Ops.getBySymbol(word);
 			if (op.isPresent()) {
 				switch (op.get()) {
+					case OP_END -> {
+						final int pointer = instructionStack.pop();
+						final ProgramTuple tuple = result[pointer];
+						if (tuple.op == Ops.OP_IF || tuple.op == Ops.OP_ELSE) {
+							tuple.data = i;
+							result[i] = new ProgramTuple(Ops.OP_END, i + 1);
+						} else if (tuple.op == Ops.OP_DO) {
+							result[i] = new ProgramTuple(Ops.OP_END, (int) tuple.data + 1);
+							tuple.data = i + 1;
+						} else {
+							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
+						}
+						continue;
+					}
 					case OP_IF -> {
 						instructionStack.push(i);
 						result[i] = new ProgramTuple(Ops.OP_IF, null);
@@ -59,14 +73,15 @@ public final class Main {
 						result[i] = new ProgramTuple(Ops.OP_ELSE, i);
 						continue;
 					}
-					case OP_END -> {
+					case OP_WHILE -> {
+						instructionStack.push(i);
+						result[i] = new ProgramTuple(Ops.OP_WHILE, null);
+						continue;
+					}
+					case OP_DO -> {
 						final int pointer = instructionStack.pop();
-						final ProgramTuple tuple = result[pointer];
-						if (tuple.op != Ops.OP_IF && tuple.op != Ops.OP_ELSE) {
-							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
-						}
-						tuple.data = i;
-						result[i] = new ProgramTuple(Ops.OP_END, i + 1);
+						instructionStack.push(i);
+						result[i] = new ProgramTuple(Ops.OP_DO, pointer);
 						continue;
 					}
 					default -> {
@@ -99,9 +114,11 @@ public final class Main {
 				case OP_SUBTRACT -> new SubtractInstruction();
 				case OP_MULTIPLY -> new MultiplyInstruction();
 				case OP_DIVIDE -> new DivideInstruction();
+				case OP_END -> new EndInstruction((Integer) program[pointer].data);
 				case OP_IF -> new IfInstruction((Integer) program[pointer].data);
 				case OP_ELSE -> new ElseInstruction((Integer) program[pointer].data);
-				case OP_END -> new EndInstruction((Integer) program[pointer].data);
+				case OP_WHILE -> new WhileInstruction();
+				case OP_DO -> new DoInstruction((Integer) program[pointer].data);
 			};
 			result[pointer] = ins;
 		}
