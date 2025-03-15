@@ -30,8 +30,7 @@ public final class Main {
 				final List<String> lines = Files.readAllLines(f.toPath());
 				final String program = String.join("\n", lines);
 				final Instruction[] instructions = Parser.parse(program);
-				final Stack stack = new Stack();
-				Main.simulate(stack, instructions);
+				new Simulator().execute(instructions);
 			} catch (final IOException e) {
 				System.err.println("Could not read file");
 				e.printStackTrace();
@@ -46,17 +45,5 @@ public final class Main {
 		System.out.println("\thelp: Print this info");
 		System.out.println("\tsim: Simulate the program");
 		System.out.println("\t\tRequired a file path as first argument");
-	}
-
-	public static void simulate(final Stack stack, final Instruction[] program) {
-		final int[] pointer = {0};
-		while (pointer[0] < program.length) {
-			final Instruction instruction = program[pointer[0]++];
-			if (instruction instanceof final JumpInstruction jumpInstruction) {
-				jumpInstruction.apply(p -> pointer[0] = p, stack);
-			} else {
-				instruction.apply(stack);
-			}
-		}
 	}
 }

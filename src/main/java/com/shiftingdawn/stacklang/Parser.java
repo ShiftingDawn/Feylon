@@ -85,6 +85,8 @@ public class Parser {
 				case OP_PUSH -> new PushInstruction((Integer) program[pointer].data);
 				case OP_POP -> new PopInstruction();
 				case OP_DUP -> new DupInstruction();
+				case OP_MEM_SET -> new MemSetInstruction();
+				case OP_MEM_GET -> new MemGetInstruction();
 				case OP_PRINT -> new PrintInstruction();
 				case OP_EQUALS -> new EqualsInstruction();
 				case OP_NOT_EQUALS -> new NotEqualsInstruction();

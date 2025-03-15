@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 public abstract class AbstractTestHost {
 
 	protected Stack stack;
+	protected Memory memory;
 
 	@BeforeEach
 	public void makeStack() {
@@ -15,12 +16,17 @@ public abstract class AbstractTestHost {
 
 	public void run(final String program) {
 		this.stack = new Stack();
+		this.memory = new Memory();
 		final Instruction[] compiled = Parser.parse(program);
-		Main.simulate(this.stack, compiled);
+		new Simulator(this.stack, this.memory).execute(compiled);
 	}
 
 	public void assertStack(final int value) {
 		Assertions.assertEquals(value, this.stack.pop());
+	}
+
+	public void assertMemory(final int pointer, final int value) {
+		Assertions.assertEquals(value, this.memory.get(pointer));
 	}
 
 	public void assertStackEmpty() {

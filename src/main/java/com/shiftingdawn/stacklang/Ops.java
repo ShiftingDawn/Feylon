@@ -9,6 +9,8 @@ public enum Ops {
 	OP_PUSH,
 	OP_POP("pop"),
 	OP_DUP("dup"),
+	OP_MEM_SET("memset"),
+	OP_MEM_GET("memget"),
 	OP_PRINT("print"),
 	OP_EQUALS('='),
 	OP_NOT_EQUALS("!="),
