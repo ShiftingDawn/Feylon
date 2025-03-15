@@ -3,6 +3,7 @@ package com.shiftingdawn.stacklang.tests;
 import com.shiftingdawn.stacklang.Instruction;
 import com.shiftingdawn.stacklang.Main;
 import com.shiftingdawn.stacklang.Stack;
+import com.shiftingdawn.stacklang.StackUnderflowError;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -23,5 +24,9 @@ public abstract class AbstractTestHost {
 
 	public void assertStack(final int value) {
 		Assertions.assertEquals(value, this.stack.pop());
+	}
+
+	public void assertStackEmpty() {
+		Assertions.assertThrows(StackUnderflowError.class, this.stack::pop);
 	}
 }
