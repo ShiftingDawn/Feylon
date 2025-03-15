@@ -97,4 +97,16 @@ public class ArithmeticTests extends AbstractTestHost {
 	public void testDivideByZero() {
 		Assertions.assertThrows(ArithmeticException.class, () -> this.run("1 0 /"));
 	}
+
+	@Test
+	public void testMod() {
+		this.run("10 3 %");
+		this.assertStack(1);
+		this.run("10 4 %");
+		this.assertStack(2);
+		Assertions.assertThrows(ArithmeticException.class, () -> this.run("1 0 %"));
+		Assertions.assertDoesNotThrow(() -> this.run("0 1 %"));
+		this.run("0 1 %");
+		this.assertStack(0);
+	}
 }

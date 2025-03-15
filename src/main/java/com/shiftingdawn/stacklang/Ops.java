@@ -20,6 +20,7 @@ public enum Ops {
 	OP_SUBTRACT('-'),
 	OP_MULTIPLY('*'),
 	OP_DIVIDE('/'),
+	OP_MOD('%'),
 	OP_END("end"),
 	OP_IF("if"),
 	OP_ELSE("else"),

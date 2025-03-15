@@ -96,6 +96,7 @@ public class Parser {
 				case OP_SUBTRACT -> new SubtractInstruction();
 				case OP_MULTIPLY -> new MultiplyInstruction();
 				case OP_DIVIDE -> new DivideInstruction();
+				case OP_MOD -> new ModInstruction();
 				case OP_END -> new EndInstruction((Integer) program[pointer].data);
 				case OP_IF -> new IfInstruction((Integer) program[pointer].data);
 				case OP_ELSE -> new ElseInstruction((Integer) program[pointer].data);
