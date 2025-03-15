@@ -9,7 +9,7 @@ public enum Ops {
 	OP_PUSH,
 	OP_POP("pop"),
 	OP_DUP("dup"),
-	OP_PRINT('.'),
+	OP_PRINT("print"),
 	OP_EQUALS('='),
 	OP_NOT_EQUALS("!="),
 	OP_LESS('<'),
