@@ -7,6 +7,7 @@ public enum Ops {
 
 	NOOP,
 	OP_PUSH,
+	OP_POP("pop"),
 	OP_PRINT('.'),
 	OP_EQUALS('='),
 	OP_ADD('+'),
@@ -14,6 +15,7 @@ public enum Ops {
 	OP_MULTIPLY('*'),
 	OP_DIVIDE('/'),
 	OP_IF("if"),
+	OP_ELSE("else"),
 	OP_END("end");
 
 	private static final Ops[] OPS_WITH_SYMBOL = Arrays.stream(Ops.values())

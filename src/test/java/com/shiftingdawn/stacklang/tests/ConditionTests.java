@@ -27,4 +27,15 @@ public class ConditionTests extends AbstractTestHost {
 		this.run("1 2 + 4 = if 3 end");
 		this.assertStackEmpty();
 	}
+
+	@Test
+	public void testIfElseTrue() {
+		this.run("1 1 + 2 = if 3 else 4 end");
+		this.assertStack(3);
+	}
+
+	@Test
+	public void testIfElseFalse() {
+		this.run("1 2 + 4 = if 3 else 4 end");
+	}
 }

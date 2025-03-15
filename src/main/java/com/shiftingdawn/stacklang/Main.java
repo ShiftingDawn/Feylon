@@ -17,23 +17,13 @@ public final class Main {
 	}
 
 	public static void simulate(final Stack stack, final Instruction[] program) {
-		int pointer = 0;
-		while (pointer < program.length) {
-			final Instruction instruction = program[pointer];
-			if (instruction instanceof ConditionalJumpInstruction) {
-				final int x = stack.pop();
-				if (x == 0) {
-					instruction.apply(stack);
-					pointer = stack.pop();
-				} else {
-					++pointer;
-				}
-			} else if (instruction instanceof JumpInstruction) {
-				instruction.apply(stack);
-				pointer = stack.pop();
+		final int[] pointer = {0};
+		while (pointer[0] < program.length) {
+			final Instruction instruction = program[pointer[0]++];
+			if (instruction instanceof final JumpInstruction jumpInstruction) {
+				jumpInstruction.apply(p -> pointer[0] = p, stack);
 			} else {
 				instruction.apply(stack);
-				++pointer;
 			}
 		}
 	}
@@ -58,10 +48,21 @@ public final class Main {
 						result[i] = new ProgramTuple(Ops.OP_IF, null);
 						continue;
 					}
+					case OP_ELSE -> {
+						final int pointer = instructionStack.pop();
+						instructionStack.push(i);
+						final ProgramTuple tuple = result[pointer];
+						if (tuple.op != Ops.OP_IF) {
+							throw new AssertionError(Ops.OP_ELSE + " operation refers to illegal operation " + tuple.op);
+						}
+						tuple.data = i + 1;
+						result[i] = new ProgramTuple(Ops.OP_ELSE, i);
+						continue;
+					}
 					case OP_END -> {
 						final int pointer = instructionStack.pop();
 						final ProgramTuple tuple = result[pointer];
-						if (tuple.op != Ops.OP_IF) {
+						if (tuple.op != Ops.OP_IF && tuple.op != Ops.OP_ELSE) {
 							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
 						}
 						tuple.data = i;
@@ -85,13 +86,15 @@ public final class Main {
 			final Instruction ins = switch (program[pointer].op) {
 				case NOOP -> new NoopInstruction();
 				case OP_PUSH -> new PushInstruction((Integer) program[pointer].data);
+				case OP_POP -> new PopInstruction();
 				case OP_PRINT -> new PrintInstruction();
 				case OP_EQUALS -> new EqualsInstruction();
 				case OP_ADD -> new AddInstruction();
 				case OP_SUBTRACT -> new SubtractInstruction();
 				case OP_MULTIPLY -> new MultiplyInstruction();
 				case OP_DIVIDE -> new DivideInstruction();
-				case OP_IF -> new ConditionalJumpInstruction((Integer) program[pointer].data);
+				case OP_IF -> new IfInstruction((Integer) program[pointer].data);
+				case OP_ELSE -> new ElseInstruction((Integer) program[pointer].data);
 				case OP_END -> throw new AssertionError("If you see this, the parsing of the program is broken");
 			};
 			result[pointer] = ins;
