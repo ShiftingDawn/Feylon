@@ -90,6 +90,11 @@ public final class Main {
 				case OP_DUP -> new DupInstruction();
 				case OP_PRINT -> new PrintInstruction();
 				case OP_EQUALS -> new EqualsInstruction();
+				case OP_NOT_EQUALS -> new NotEqualsInstruction();
+				case OP_LESS -> new LessInstruction();
+				case OP_GREATER -> new GreaterInstruction();
+				case OP_LESS_EQUAL -> new LessEqualInstruction();
+				case OP_GREATER_EQUAL -> new GreaterEqualInstruction();
 				case OP_ADD -> new AddInstruction();
 				case OP_SUBTRACT -> new SubtractInstruction();
 				case OP_MULTIPLY -> new MultiplyInstruction();
