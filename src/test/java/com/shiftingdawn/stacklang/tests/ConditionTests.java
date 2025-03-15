@@ -74,7 +74,7 @@ public class ConditionTests extends AbstractTestHost {
 
 	@Test
 	public void testWhile() {
-		this.run("5 while dup 0 > do dup . 1 - end");
+		this.run("5 while dup 0 > do 1 - end");
 		this.assertStack(0);
 	}
 }

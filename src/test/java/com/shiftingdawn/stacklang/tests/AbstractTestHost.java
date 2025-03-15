@@ -1,9 +1,6 @@
 package com.shiftingdawn.stacklang.tests;
 
-import com.shiftingdawn.stacklang.Instruction;
-import com.shiftingdawn.stacklang.Main;
-import com.shiftingdawn.stacklang.Stack;
-import com.shiftingdawn.stacklang.StackUnderflowError;
+import com.shiftingdawn.stacklang.*;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -18,7 +15,7 @@ public abstract class AbstractTestHost {
 
 	public void run(final String program) {
 		this.stack = new Stack();
-		final Instruction[] compiled = Main.makeInstructions(Main.parseProgram(program));
+		final Instruction[] compiled = Parser.parse(program);
 		Main.simulate(this.stack, compiled);
 	}
 
