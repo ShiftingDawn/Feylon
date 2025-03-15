@@ -1,29 +1,52 @@
 package com.shiftingdawn.stacklang;
 
+import com.shiftingdawn.stacklang.instruction.*;
+
 public final class Main {
 
 	public static void main(final String[] args) {
 		final Stack stack = new Stack();
 		final String program = "1 2 + 3 * 9 = .";
-		final Instruction[] parsed = Main.parseProgram(program);
-		for (final Instruction instruction : parsed) {
-			final Tuple<Ops, Object> op = instruction.op();
-			op.a().apply(stack, op.b());
+
+		final ProgramTuple[] parsed = Main.parseProgram(program);
+		final Instruction[] instructions = Main.makeInstructions(parsed);
+
+		for (final Instruction instruction : instructions) {
+			instruction.apply(stack, null);
 		}
 	}
 
-	public static Instruction[] parseProgram(final String program) {
+	public static ProgramTuple[] parseProgram(final String program) {
 		final String[] words = program.split("[\\s\\n]+");
-		final Instruction[] result = new Instruction[words.length];
+		final ProgramTuple[] result = new ProgramTuple[words.length];
 		for (int i = 0; i < words.length; ++i) {
 			final String word = words[i];
 			try {
-				final double d = Double.parseDouble(word);
-				result[i] = new Instruction(new Tuple<>(Ops.OP_PUSH, d), i, i + 1);
+				final int x = Integer.parseInt(word);
+				result[i] = new ProgramTuple(Ops.OP_PUSH, x);
 			} catch (final NumberFormatException ignored) {
-				final Ops op = Ops.parse(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
-				result[i] = new Instruction(new Tuple<>(op, word), i, i + 1);
+				final Ops op = Ops.getBySymbol(word).orElseThrow(() -> new IllegalArgumentException("Unknown operation: " + word));
+				result[i] = new ProgramTuple(op, word);
 			}
+		}
+		return result;
+	}
+
+	public static Instruction[] makeInstructions(final ProgramTuple[] program) {
+		final Instruction[] result = new Instruction[program.length];
+		int pointer = 0;
+		while (pointer < program.length) {
+			final Instruction ins = switch (program[pointer].op) {
+				case OP_PUSH -> new PushInstruction((Integer) program[pointer].data);
+				case OP_PRINT -> new PrintInstruction();
+				case OP_EQUALS -> new EqualsInstruction();
+				case OP_ADD -> new AddInstruction();
+				case OP_SUBTRACT -> new SubtractInstruction();
+				case OP_MULTIPLY -> new MultiplyInstruction();
+				case OP_DIVIDE -> new DivideInstruction();
+			};
+			result[pointer] = ins;
+			++pointer;
 		}
 		return result;
 	}

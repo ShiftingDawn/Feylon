@@ -1,9 +1,9 @@
-package com.shiftingdawn.stacklang.ops;
+package com.shiftingdawn.stacklang.instruction;
 
-import com.shiftingdawn.stacklang.Op;
+import com.shiftingdawn.stacklang.Instruction;
 import com.shiftingdawn.stacklang.Stack;
 
-public class PrintOp implements Op {
+public class PrintInstruction implements Instruction {
 
 	@Override
 	public void apply(final Stack stack, final Object token) {
