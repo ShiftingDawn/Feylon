@@ -15,7 +15,8 @@ public abstract class AbstractTestHost {
 		this.stack = new Stack();
 	}
 
-	public void compile(final String program) {
+	public void run(final String program) {
+		this.stack = new Stack();
 		final Instruction[] compiled = Main.makeInstructions(Main.parseProgram(program));
 		Main.simulate(this.stack, compiled);
 	}
