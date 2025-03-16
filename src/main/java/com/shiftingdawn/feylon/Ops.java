@@ -10,6 +10,7 @@ public enum Ops {
 	OP_PUSH_STRING,
 	OP_POP("pop"),
 	OP_DUP("dup"),
+	OP_SYSCALL3("syscall3"),
 	OP_MEM("mem"),
 	OP_MEM_SET("memset"),
 	OP_MEM_GET("memget"),

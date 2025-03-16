@@ -1,10 +1,1 @@
-1
-1
-+ //test
-print
-"test string"
-print
-print
-"test string2"
-print
-print
+"hello world" 1 1 syscall3
