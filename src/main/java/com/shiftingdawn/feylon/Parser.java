@@ -5,9 +5,11 @@ import com.shiftingdawn.feylon.ins.jump.*;
 import com.shiftingdawn.feylon.ins.mem.MemGetInstruction;
 import com.shiftingdawn.feylon.ins.mem.MemSetInstruction;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 public class Parser {
 
@@ -15,72 +17,124 @@ public class Parser {
 		return Parser.makeInstructions(Parser.makeTuples(program));
 	}
 
-	private static ProgramTuple[] makeTuples(final Collection<String> program) {
-		final Stack instructionStack = new Stack();
-		final String[] words = program.stream()
-				.map(line -> line.split("//", 2)[0])
-				.flatMap(line -> Arrays.stream(line.split("\\s+")))
-				.toArray(String[]::new);
-		final ProgramTuple[] result = new ProgramTuple[words.length];
-		for (int i = 0; i < words.length; ++i) {
-			final String word = words[i];
-			try {
-				final int x = Integer.parseInt(word);
-				result[i] = new ProgramTuple(Ops.OP_PUSH, x);
-				continue;
-			} catch (final NumberFormatException ignored) {
+	private static int findPosition(final String line, int start, final Predicate<Character> predicate) {
+		while (start < line.length() && !predicate.test(line.charAt(start))) {
+			++start;
+		}
+		return start;
+	}
+
+	private record LexedLineToken(int pos, LexedTokenType type, Object value) {
+	}
+
+	private enum LexedTokenType {
+		INT, INSTRUCTION, STRING;
+	}
+
+
+	private static LexedLineToken[] lexLine(final String line) {
+		final List<LexedLineToken> result = new ArrayList<>();
+		int pos = Parser.findPosition(line, 0, x -> x != ' ');
+		while (pos < line.length()) {
+			if (line.charAt(pos) == '"') {
+				final int endPos = Parser.findPosition(line, pos + 1, x -> x == '"');
+				assert line.charAt(endPos) == '"';
+				final String tokenText = line.substring(pos + 1, endPos);
+				result.add(new LexedLineToken(pos, LexedTokenType.STRING, tokenText));
+				pos = Parser.findPosition(line, endPos + 2, x -> x != ' ');
+			} else {
+				final int endPos = Parser.findPosition(line, pos, x -> x == ' ');
+				final String tokenText = line.substring(pos, endPos);
+				try {
+					result.add(new LexedLineToken(pos, LexedTokenType.INT, Integer.parseInt(tokenText)));
+				} catch (final NumberFormatException ignored) {
+					result.add(new LexedLineToken(pos, LexedTokenType.INSTRUCTION, tokenText));
+				}
+				pos = Parser.findPosition(line, endPos, x -> x != ' ');
 			}
-			final Optional<Ops> op = Ops.getBySymbol(word);
-			if (op.isPresent()) {
-				switch (op.get()) {
-					case OP_END -> {
-						final int pointer = instructionStack.pop();
-						final ProgramTuple tuple = result[pointer];
-						if (tuple.op == Ops.OP_IF || tuple.op == Ops.OP_ELSE) {
-							tuple.data = i;
-							result[i] = new ProgramTuple(Ops.OP_END, i + 1);
-						} else if (tuple.op == Ops.OP_DO) {
-							result[i] = new ProgramTuple(Ops.OP_END, (int) tuple.data + 1);
-							tuple.data = i + 1;
-						} else {
-							throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
+		}
+		return result.toArray(LexedLineToken[]::new);
+	}
+
+	private record LexedLinePosition(String file, int lineNr, int charPos) {
+	}
+
+	private record LexedLine(LexedTokenType type, LexedLinePosition pos, Object value) {
+	}
+
+	public static LexedLine[] lexLines(final String fileName, final String[] lines) {
+		final ArrayList<LexedLine> result = new ArrayList<>();
+		for (int row = 0; row < lines.length; ++row) {
+			final LexedLineToken[] tokens = Parser.lexLine(lines[row].split("//", 2)[0]);
+			for (final LexedLineToken token : tokens) {
+				result.add(new LexedLine(token.type, new LexedLinePosition(fileName, row + 1, token.pos + 1), token.value));
+			}
+		}
+		return result.toArray(new LexedLine[0]);
+	}
+
+	private static ProgramTuple[] makeTuples(final Collection<String> program) {
+		final LexedLine[] tokenData = Parser.lexLines(null, program.toArray(new String[0]));
+		final Stack instructionStack = new Stack();
+		final ProgramTuple[] result = new ProgramTuple[tokenData.length];
+		for (int i = 0; i < tokenData.length; ++i) {
+			final LexedLine token = tokenData[i];
+			switch (token.type) {
+				case INT -> result[i] = new ProgramTuple(Ops.OP_PUSH, token.value);
+				case INSTRUCTION -> {
+					final Optional<Ops> op = Ops.getBySymbol((String) token.value);
+					if (op.isPresent()) {
+						switch (op.get()) {
+							case OP_END -> {
+								final int pointer = instructionStack.pop();
+								final ProgramTuple tuple = result[pointer];
+								if (tuple.op == Ops.OP_IF || tuple.op == Ops.OP_ELSE) {
+									tuple.data = i;
+									result[i] = new ProgramTuple(Ops.OP_END, i + 1);
+								} else if (tuple.op == Ops.OP_DO) {
+									result[i] = new ProgramTuple(Ops.OP_END, (int) tuple.data + 1);
+									tuple.data = i + 1;
+								} else {
+									throw new AssertionError(Ops.OP_END + " operation refers to illegal operation " + tuple.op);
+								}
+								continue;
+							}
+							case OP_IF -> {
+								instructionStack.push(i);
+								result[i] = new ProgramTuple(Ops.OP_IF, null);
+								continue;
+							}
+							case OP_ELSE -> {
+								final int pointer = instructionStack.pop();
+								instructionStack.push(i);
+								final ProgramTuple tuple = result[pointer];
+								if (tuple.op != Ops.OP_IF) {
+									throw new AssertionError(Ops.OP_ELSE + " operation refers to illegal operation " + tuple.op);
+								}
+								tuple.data = i + 1;
+								result[i] = new ProgramTuple(Ops.OP_ELSE, i);
+								continue;
+							}
+							case OP_WHILE -> {
+								instructionStack.push(i);
+								result[i] = new ProgramTuple(Ops.OP_WHILE, null);
+								continue;
+							}
+							case OP_DO -> {
+								final int pointer = instructionStack.pop();
+								instructionStack.push(i);
+								result[i] = new ProgramTuple(Ops.OP_DO, pointer);
+								continue;
+							}
+							default -> {
+								result[i] = new ProgramTuple(op.get(), token.value);
+								continue;
+							}
 						}
-						continue;
 					}
-					case OP_IF -> {
-						instructionStack.push(i);
-						result[i] = new ProgramTuple(Ops.OP_IF, null);
-						continue;
-					}
-					case OP_ELSE -> {
-						final int pointer = instructionStack.pop();
-						instructionStack.push(i);
-						final ProgramTuple tuple = result[pointer];
-						if (tuple.op != Ops.OP_IF) {
-							throw new AssertionError(Ops.OP_ELSE + " operation refers to illegal operation " + tuple.op);
-						}
-						tuple.data = i + 1;
-						result[i] = new ProgramTuple(Ops.OP_ELSE, i);
-						continue;
-					}
-					case OP_WHILE -> {
-						instructionStack.push(i);
-						result[i] = new ProgramTuple(Ops.OP_WHILE, null);
-						continue;
-					}
-					case OP_DO -> {
-						final int pointer = instructionStack.pop();
-						instructionStack.push(i);
-						result[i] = new ProgramTuple(Ops.OP_DO, pointer);
-						continue;
-					}
-					default -> {
-						result[i] = new ProgramTuple(op.get(), word);
-						continue;
-					}
+					throw new AssertionError("Unhandled operation: " + token.value);
 				}
 			}
-			throw new AssertionError("Unhandled operation: " + word);
 		}
 		return result;
 	}

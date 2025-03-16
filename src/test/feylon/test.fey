@@ -2,3 +2,5 @@
 1
 + //test
 print
+"test string"
+print
