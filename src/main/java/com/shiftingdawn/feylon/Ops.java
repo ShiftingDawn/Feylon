@@ -6,7 +6,8 @@ import java.util.Optional;
 public enum Ops {
 
 	NOOP,
-	OP_PUSH,
+	OP_PUSH_INT,
+	OP_PUSH_STRING,
 	OP_POP("pop"),
 	OP_DUP("dup"),
 	OP_MEM("mem"),

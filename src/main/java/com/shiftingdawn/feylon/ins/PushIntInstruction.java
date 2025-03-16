@@ -3,11 +3,11 @@ package com.shiftingdawn.feylon.ins;
 import com.shiftingdawn.feylon.Instruction;
 import com.shiftingdawn.feylon.Stack;
 
-public class PushInstruction implements Instruction {
+public class PushIntInstruction implements Instruction {
 
 	private final int x;
 
-	public PushInstruction(final int x) {
+	public PushIntInstruction(final int x) {
 		this.x = x;
 	}
 

@@ -80,7 +80,8 @@ public class Parser {
 		for (int i = 0; i < tokenData.length; ++i) {
 			final LexedLine token = tokenData[i];
 			switch (token.type) {
-				case INT -> result[i] = new ProgramTuple(Ops.OP_PUSH, token.value);
+				case INT -> result[i] = new ProgramTuple(Ops.OP_PUSH_INT, token.value);
+				case STRING -> result[i] = new ProgramTuple(Ops.OP_PUSH_STRING, token.value);
 				case INSTRUCTION -> {
 					final Optional<Ops> op = Ops.getBySymbol((String) token.value);
 					if (op.isPresent()) {
@@ -144,7 +145,8 @@ public class Parser {
 		for (int pointer = 0; pointer < program.length; ++pointer) {
 			final Instruction ins = switch (program[pointer].op) {
 				case NOOP -> new NoopInstruction();
-				case OP_PUSH -> new PushInstruction((Integer) program[pointer].data);
+				case OP_PUSH_INT -> new PushIntInstruction((Integer) program[pointer].data);
+				case OP_PUSH_STRING -> new PushStringInstruction((String) program[pointer].data);
 				case OP_POP -> new PopInstruction();
 				case OP_DUP -> new DupInstruction();
 				case OP_MEM -> new NoopInstruction();
