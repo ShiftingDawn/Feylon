@@ -16,7 +16,7 @@ public class PushStringInstruction implements MemoryInstruction {
 	public void apply(final Memory memory, final Stack stack) {
 		final int pointer = memory.getNextStringPointer();
 		final int writtenSize = memory.setString(pointer, this.x);
-		stack.push(pointer);
 		stack.push(writtenSize);
+		stack.push(pointer);
 	}
 }

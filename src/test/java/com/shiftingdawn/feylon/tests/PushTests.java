@@ -22,17 +22,17 @@ public class PushTests extends AbstractTestHost {
 	public void testPushString() {
 		final String str = "ThisIsAString!";
 		this.run('"' + str + '"');
-		this.assertStack(str.length()); //Length
 		this.assertStack(0);      //Pointer
+		this.assertStack(str.length()); //Length
 	}
 
 	@Test
 	public void testPushString2() {
 		final String str = "ThisIsAString!";
 		this.run('"' + str + "\"\n\"" + str + '"');
-		this.assertStack(str.length());  //Length
 		this.assertStack(str.length());  //Pointer (length of the previous string)
 		this.assertStack(str.length());  //Length
 		this.assertStack(0);       //Pointer
+		this.assertStack(str.length());  //Length
 	}
 }
