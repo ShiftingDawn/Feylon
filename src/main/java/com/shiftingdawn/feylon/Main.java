@@ -1,5 +1,8 @@
 package com.shiftingdawn.feylon;
 
+import com.shiftingdawn.feylon.syntax.Compiler;
+import com.shiftingdawn.feylon.syntax.Program;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,8 +31,8 @@ public final class Main {
 			}
 			try {
 				final List<String> lines = Files.readAllLines(f.toPath());
-				final Instruction[] instructions = Parser.parse(lines);
-				new Simulator().execute(instructions);
+				final Program program = Compiler.compile(f.getAbsolutePath(), lines);
+				new Simulator().execute(program);
 			} catch (final IOException e) {
 				System.err.println("Could not read file");
 				e.printStackTrace();

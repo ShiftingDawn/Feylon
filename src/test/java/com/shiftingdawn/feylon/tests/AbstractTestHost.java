@@ -1,6 +1,11 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.*;
+import com.shiftingdawn.feylon.Memory;
+import com.shiftingdawn.feylon.Simulator;
+import com.shiftingdawn.feylon.Stack;
+import com.shiftingdawn.feylon.StackUnderflowError;
+import com.shiftingdawn.feylon.syntax.Compiler;
+import com.shiftingdawn.feylon.syntax.Program;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -16,11 +21,11 @@ public abstract class AbstractTestHost {
 		this.stack = new Stack();
 	}
 
-	public void run(final String program) {
+	public void run(final String src) {
 		this.stack = new Stack();
 		this.memory = new Memory();
-		final Instruction[] compiled = Parser.parse(List.of(program));
-		new Simulator(this.stack, this.memory).execute(compiled);
+		final Program program = Compiler.compile("<generated>", List.of(src));
+		new Simulator(this.stack, this.memory).execute(program);
 	}
 
 	public void assertStack(final int value) {

@@ -1,6 +1,11 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.*;
+import com.shiftingdawn.feylon.Memory;
+import com.shiftingdawn.feylon.SegmentationError;
+import com.shiftingdawn.feylon.Simulator;
+import com.shiftingdawn.feylon.Stack;
+import com.shiftingdawn.feylon.syntax.Compiler;
+import com.shiftingdawn.feylon.syntax.Program;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -64,7 +69,7 @@ public class MemoryTests {
 
 	@Test
 	public void testMemSetInstruction() {
-		final Instruction[] program = Parser.parse(List.of("0 1 memset 10 10 memset"));
+		final Program program = Compiler.compile("<generated>", List.of("0 1 memset 10 10 memset"));
 		new Simulator(new Stack(), this.memory).execute(program);
 		assertEquals(1, this.memory.getInt(0));
 		assertEquals(10, this.memory.getInt(10));
@@ -74,7 +79,7 @@ public class MemoryTests {
 	public void testMemGetInstruction() {
 		this.array.put(0, (byte) 1);
 		this.array.put(10, (byte) 10);
-		final Instruction[] program = Parser.parse(List.of("0 memget 10 memget"));
+		final Program program = Compiler.compile("<generated>", List.of("0 memget 10 memget"));
 		final Stack stack = new Stack();
 		new Simulator(stack, this.memory).execute(program);
 		assertEquals(10, stack.pop());

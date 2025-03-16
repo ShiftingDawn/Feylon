@@ -1,5 +1,7 @@
 package com.shiftingdawn.feylon;
 
+import com.shiftingdawn.feylon.syntax.Program;
+
 public class Simulator {
 
 	private final Stack stack;
@@ -14,10 +16,11 @@ public class Simulator {
 		this(new Stack(), new Memory());
 	}
 
-	public void execute(final Instruction[] program) {
+	public void execute(final Program program) {
+		final Instruction[] instructions = program.instructions();
 		final int[] pointer = {0};
-		while (pointer[0] < program.length) {
-			final Instruction instruction = program[pointer[0]++];
+		while (pointer[0] < instructions.length) {
+			final Instruction instruction = instructions[pointer[0]++];
 			if (instruction instanceof final JumpInstruction jumpInstruction) {
 				jumpInstruction.apply(p -> pointer[0] = p, this.stack);
 			} else if (instruction instanceof final MemoryInstruction memoryInstruction) {
