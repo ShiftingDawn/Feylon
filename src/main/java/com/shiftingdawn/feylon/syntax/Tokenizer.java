@@ -12,59 +12,61 @@ class Tokenizer {
 		INT, STRING, KEYWORD, INTRINSIC, INSTRUCTION;
 	}
 
-	public record TokenStack(Token[] tokenized) {
-	}
-
-	public record Token(Location location, TokenType type, Object value) {
+	public record TokenStack(List<AbstractToken<?>> tokenized) {
 	}
 
 	public static TokenStack tokenize(final String filePath, final Collection<String> lines) {
-		final ArrayList<Token> result = new ArrayList<>();
+		final ArrayList<AbstractToken<?>> result = new ArrayList<>();
 		int row = 0;
 		for (final String line : lines) {
-			final ParsedLineToken[] tokens = Tokenizer.parseLine(line.split("//", 2)[0]);
-			for (final ParsedLineToken token : tokens) {
-				result.add(new Token(new Location(filePath, ++row, token.pos + 1), token.type, token.value));
+			final Collection<AbstractParserElement<?>> tokens = Tokenizer.parseLine(line.split("//", 2)[0]);
+			for (final AbstractParserElement<?> token : tokens) {
+				final Location loc = new Location(filePath, ++row, token.pos + 1);
+				result.add(switch (token) {
+					case final AbstractParserElement.Int intToken -> new AbstractToken.Int(loc, intToken.value);
+					case final AbstractParserElement.String stringToken -> new AbstractToken.String(loc, stringToken.value);
+					case final AbstractParserElement.Keyword keywordToken -> new AbstractToken.Keyword(loc, keywordToken.value);
+					case final AbstractParserElement.Intrinsic stringToken -> new AbstractToken.Intrinsic(loc, stringToken.value);
+					case final AbstractParserElement.Instruction instructionToken -> new AbstractToken.Instruction(loc, instructionToken.value);
+					default -> throw new AssertionError("Found unhandled token type: " + token.getClass().getName());
+				});
 			}
 		}
-		return new TokenStack(result.toArray(Token[]::new));
+		return new TokenStack(result);
 	}
 
-	private record ParsedLineToken(int pos, TokenType type, Object value) {
-	}
-
-	private static ParsedLineToken[] parseLine(final String line) {
-		final List<ParsedLineToken> result = new ArrayList<>();
+	private static Collection<AbstractParserElement<?>> parseLine(final String line) {
+		final List<AbstractParserElement<?>> result = new ArrayList<>();
 		int pos = Tokenizer.findPosition(line, 0, x -> x != ' ');
 		while (pos < line.length()) {
 			if (line.charAt(pos) == '"') {
 				final int endPos = Tokenizer.findPosition(line, pos + 1, x -> x == '"');
 				assert line.charAt(endPos) == '"';
 				final String tokenText = line.substring(pos + 1, endPos);
-				result.add(new ParsedLineToken(pos, TokenType.STRING, tokenText));
+				result.add(new AbstractParserElement.String(pos, tokenText));
 				pos = Tokenizer.findPosition(line, endPos + 2, x -> x != ' ');
 			} else {
 				final int endPos = Tokenizer.findPosition(line, pos, x -> x == ' ');
 				final String tokenText = line.substring(pos, endPos);
 				try {
-					result.add(new ParsedLineToken(pos, TokenType.INT, Integer.parseInt(tokenText)));
+					result.add(new AbstractParserElement.Int(pos, Integer.parseInt(tokenText)));
 				} catch (final NumberFormatException ignored) {
 					final Optional<Keyword> keyword = Keyword.getByText(tokenText);
 					if (keyword.isPresent()) {
-						result.add(new ParsedLineToken(pos, TokenType.KEYWORD, keyword.get()));
+						result.add(new AbstractParserElement.Keyword(pos, keyword.get()));
 					} else {
 						final Optional<Intrinsic> intrinsic = Intrinsic.getByText(tokenText);
 						if (intrinsic.isPresent()) {
-							result.add(new ParsedLineToken(pos, TokenType.INTRINSIC, intrinsic.get()));
+							result.add(new AbstractParserElement.Intrinsic(pos, intrinsic.get()));
 						} else {
-							result.add(new ParsedLineToken(pos, TokenType.INSTRUCTION, tokenText));
+							result.add(new AbstractParserElement.Instruction(pos, tokenText));
 						}
 					}
 				}
 				pos = Tokenizer.findPosition(line, endPos, x -> x != ' ');
 			}
 		}
-		return result.toArray(ParsedLineToken[]::new);
+		return result;
 	}
 
 	private static int findPosition(final String line, int start, final Predicate<Character> predicate) {
