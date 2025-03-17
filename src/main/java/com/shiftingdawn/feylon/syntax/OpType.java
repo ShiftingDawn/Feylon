@@ -8,6 +8,8 @@ public enum OpType {
 
 	OPERATION,
 
+	FUNCTION,
+	RETURN,
 	END,
 	IF,
 	ELSE,

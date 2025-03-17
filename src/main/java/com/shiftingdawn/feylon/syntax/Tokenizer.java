@@ -55,9 +55,7 @@ class Tokenizer {
 						if (intrinsic.isPresent()) {
 							result.add(new ParsedLineToken(pos, TokenType.INTRINSIC, intrinsic.get()));
 						} else {
-							final Operations operation = Operations.getByText(tokenText)
-									.orElseThrow(() -> new AssertionError("Unknown token: " + tokenText));
-							result.add(new ParsedLineToken(pos, TokenType.INSTRUCTION, operation));
+							result.add(new ParsedLineToken(pos, TokenType.INSTRUCTION, tokenText));
 						}
 					}
 				}

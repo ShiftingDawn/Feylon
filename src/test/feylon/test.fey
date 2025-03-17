@@ -1,1 +1,10 @@
-"hello world" 1 1 syscall3
+function hello
+    dup print 1 +
+end
+
+0
+hello
+hello
+hello
+hello
+hello
