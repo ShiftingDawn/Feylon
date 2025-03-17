@@ -1,1 +1,4 @@
-1 2 + print
+import "math.fey"
+
+A B + print
+B A - print

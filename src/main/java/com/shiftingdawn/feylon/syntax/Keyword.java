@@ -11,7 +11,8 @@ public enum Keyword {
 	IF("if"),
 	ELSE("else"),
 	WHILE("while"),
-	DO("do");
+	DO("do"),
+	CONST("const");
 
 	private final String textValue;
 

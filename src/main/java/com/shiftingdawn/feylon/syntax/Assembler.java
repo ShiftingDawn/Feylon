@@ -59,10 +59,11 @@ class Assembler {
 					case MEMGET -> new MemGetInstruction();
 					case PRINT -> new PrintInstruction();
 				}).orElseGet(() -> {
-					if (!sourceStack.functions().containsKey(data)) {
+					if (sourceStack.functions().containsKey(data)) {
+						return new CallFunctionInstruction(sourceStack.functions().get(data), finalPointer + 1);
+					} else {
 						throw new AssertionError("Encountered unknown operation '%s'".formatted(data));
 					}
-					return new CallFunctionInstruction(sourceStack.functions().get(data), finalPointer + 1);
 				});
 			};
 		}

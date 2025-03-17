@@ -35,9 +35,15 @@ public class Compiler {
 	private static SourceStack makeSourceStack(final Tokenizer.TokenStack tokenStack) {
 		final List<Tokenizer.Token> tokenList = new ArrayList<>(Arrays.asList(tokenStack.tokenized()));
 		Collections.reverse(tokenList);
-		final List<InstructionSource> result = new ArrayList<>();
+		List<InstructionSource> result = new ArrayList<>();
+
 		final Stack instructionStack = new Stack();
 		final Map<String, Integer> functions = new HashMap<>();
+		final Map<String, InstructionSource[]> constants = new HashMap<>();
+
+		String currentConstant = null;
+		List<InstructionSource> constantResultListCache = new ArrayList<>();
+
 		while (!tokenList.isEmpty()) {
 			final Tokenizer.Token token = tokenList.getLast();
 			tokenList.removeLast();
@@ -47,19 +53,29 @@ public class Compiler {
 				case KEYWORD -> {
 					switch ((Keyword) token.value()) {
 						case END -> {
-							final int pointer = instructionStack.pop();
-							final InstructionSource instructionSource = result.get(pointer);
-							if (instructionSource.type == OpType.IF || instructionSource.type == OpType.ELSE) {
-								result.addLast(new InstructionSource(OpType.END, token.location(), result.size() + 1));
-								instructionSource.data = result.size();
-							} else if (instructionSource.type == OpType.DO) {
-								result.addLast(new InstructionSource(OpType.END, token.location(), (int) instructionSource.data + 1));
-								instructionSource.data = result.size();
-							} else if (instructionSource.type == OpType.FUNCTION) {
-								result.addLast(new InstructionSource(OpType.RETURN, token.location(), result.size() + 1));
-								instructionSource.data = result.size();
+							if (currentConstant != null) {
+								constants.put(currentConstant, result.toArray(InstructionSource[]::new));
+								result = constantResultListCache;
+								currentConstant = null;
+								constantResultListCache = new ArrayList<>();
 							} else {
-								throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
+								final int pointer = instructionStack.pop();
+								final InstructionSource instructionSource = result.get(pointer);
+								switch (instructionSource.type) {
+									case IF, ELSE -> {
+										result.addLast(new InstructionSource(OpType.END, token.location(), result.size() + 1));
+										instructionSource.data = result.size();
+									}
+									case DO -> {
+										result.addLast(new InstructionSource(OpType.END, token.location(), (int) instructionSource.data + 1));
+										instructionSource.data = result.size();
+									}
+									case FUNCTION -> {
+										result.addLast(new InstructionSource(OpType.RETURN, token.location(), result.size() + 1));
+										instructionSource.data = result.size();
+									}
+									default -> throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
+								}
 							}
 						}
 						case IF -> {
@@ -117,11 +133,27 @@ public class Compiler {
 								throw new AssertionError("Could not load import: " + importPath, e);
 							}
 						}
+						case CONST -> {
+							final Tokenizer.Token nextToken = tokenList.getLast();
+							tokenList.removeLast();
+							if (nextToken.type() != Tokenizer.TokenType.INSTRUCTION) {
+								throw new AssertionError("Expected constant name, got: " + nextToken.type());
+							}
+							currentConstant = (String) nextToken.value();
+							constantResultListCache = result;
+							result = new ArrayList<>();
+						}
 						default -> throw new AssertionError("Found unimplemented keyword " + token.value());
 					}
 				}
 				case INTRINSIC -> result.addLast(new InstructionSource(OpType.INTRINSIC, token.location(), token.value()));
-				case INSTRUCTION -> result.addLast(new InstructionSource(OpType.OPERATION, token.location(), token.value()));
+				case INSTRUCTION -> {
+					if (constants.containsKey((String) token.value())) {
+						result.addAll(Arrays.asList(constants.get((String) token.value())));
+					} else {
+						result.addLast(new InstructionSource(OpType.OPERATION, token.location(), token.value()));
+					}
+				}
 			}
 		}
 		return new SourceStack(result.toArray(InstructionSource[]::new), functions);
