@@ -22,10 +22,12 @@ public class Compiler {
 	public static class InstructionSource {
 
 		public final OpType type;
+		public final Location location;
 		public Object data;
 
-		public InstructionSource(final OpType type, final Object data) {
+		public InstructionSource(final OpType type, final Location location, final Object data) {
 			this.type = type;
+			this.location = location;
 			this.data = data;
 		}
 	}
@@ -40,21 +42,21 @@ public class Compiler {
 			final Tokenizer.Token token = tokenList.getLast();
 			tokenList.removeLast();
 			switch (token.type()) {
-				case INT -> result.addLast(new InstructionSource(OpType.PUSH_INT, token.value()));
-				case STRING -> result.addLast(new InstructionSource(OpType.PUSH_STRING, token.value()));
+				case INT -> result.addLast(new InstructionSource(OpType.PUSH_INT, token.location(), token.value()));
+				case STRING -> result.addLast(new InstructionSource(OpType.PUSH_STRING, token.location(), token.value()));
 				case KEYWORD -> {
 					switch ((Keyword) token.value()) {
 						case END -> {
 							final int pointer = instructionStack.pop();
 							final InstructionSource instructionSource = result.get(pointer);
 							if (instructionSource.type == OpType.IF || instructionSource.type == OpType.ELSE) {
-								result.addLast(new InstructionSource(OpType.END, result.size() + 1));
+								result.addLast(new InstructionSource(OpType.END, token.location(), result.size() + 1));
 								instructionSource.data = result.size();
 							} else if (instructionSource.type == OpType.DO) {
-								result.addLast(new InstructionSource(OpType.END, (int) instructionSource.data + 1));
+								result.addLast(new InstructionSource(OpType.END, token.location(), (int) instructionSource.data + 1));
 								instructionSource.data = result.size();
 							} else if (instructionSource.type == OpType.FUNCTION) {
-								result.addLast(new InstructionSource(OpType.RETURN, result.size() + 1));
+								result.addLast(new InstructionSource(OpType.RETURN, token.location(), result.size() + 1));
 								instructionSource.data = result.size();
 							} else {
 								throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
@@ -62,7 +64,7 @@ public class Compiler {
 						}
 						case IF -> {
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.IF, null));
+							result.addLast(new InstructionSource(OpType.IF, token.location(), null));
 						}
 						case ELSE -> {
 							final int pointer = instructionStack.pop();
@@ -71,17 +73,17 @@ public class Compiler {
 							if (instructionSource.type != OpType.IF) {
 								throw new AssertionError(OpType.ELSE + " operation refers to illegal operation " + instructionSource.type);
 							}
-							result.addLast(new InstructionSource(OpType.ELSE, result.size()));
+							result.addLast(new InstructionSource(OpType.ELSE, token.location(), result.size()));
 							instructionSource.data = result.size();
 						}
 						case WHILE -> {
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.WHILE, null));
+							result.addLast(new InstructionSource(OpType.WHILE, token.location(), null));
 						}
 						case DO -> {
 							final int pointer = instructionStack.pop();
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.DO, pointer));
+							result.addLast(new InstructionSource(OpType.DO, token.location(), pointer));
 						}
 						case FUNCTION -> {
 							final int selfPointer = result.size();
@@ -91,7 +93,7 @@ public class Compiler {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
-							result.addLast(new InstructionSource(OpType.FUNCTION, null));
+							result.addLast(new InstructionSource(OpType.FUNCTION, token.location(), null));
 							functions.put((String) nextToken.value(), selfPointer + 1);
 						}
 						case IMPORT -> {
@@ -100,7 +102,7 @@ public class Compiler {
 							if (nextToken.type() != Tokenizer.TokenType.STRING) {
 								throw new AssertionError("Expected import path, got: " + nextToken.type());
 							}
-							final File selfDir = new File(token.filePath()).getParentFile();
+							final File selfDir = new File(token.location().filePath()).getParentFile();
 							final Path importPath = selfDir.toPath().resolve((String) nextToken.value());
 							if (!Files.exists(importPath)) {
 								throw new AssertionError("Import does not exist: " + importPath);
@@ -118,8 +120,8 @@ public class Compiler {
 						default -> throw new AssertionError("Found unimplemented keyword " + token.value());
 					}
 				}
-				case INTRINSIC -> result.addLast(new InstructionSource(OpType.INTRINSIC, token.value()));
-				case INSTRUCTION -> result.addLast(new InstructionSource(OpType.OPERATION, token.value()));
+				case INTRINSIC -> result.addLast(new InstructionSource(OpType.INTRINSIC, token.location(), token.value()));
+				case INSTRUCTION -> result.addLast(new InstructionSource(OpType.OPERATION, token.location(), token.value()));
 			}
 		}
 		return new SourceStack(result.toArray(InstructionSource[]::new), functions);

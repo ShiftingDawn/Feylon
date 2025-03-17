@@ -1,8 +1,1 @@
-import "math.fey"
-
-1 2 min print
-10 5 min print
-8 8 min print
-1 2 max print
-10 5 max print
-8 8 max print
+1 2 + print

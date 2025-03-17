@@ -15,7 +15,7 @@ class Tokenizer {
 	public record TokenStack(Token[] tokenized) {
 	}
 
-	public record Token(String filePath, int lineNr, int charPos, TokenType type, Object value) {
+	public record Token(Location location, TokenType type, Object value) {
 	}
 
 	public static TokenStack tokenize(final String filePath, final Collection<String> lines) {
@@ -24,7 +24,7 @@ class Tokenizer {
 		for (final String line : lines) {
 			final ParsedLineToken[] tokens = Tokenizer.parseLine(line.split("//", 2)[0]);
 			for (final ParsedLineToken token : tokens) {
-				result.add(new Token(filePath, row++ + 1, token.pos + 1, token.type, token.value));
+				result.add(new Token(new Location(filePath, ++row, token.pos + 1), token.type, token.value));
 			}
 		}
 		return new TokenStack(result.toArray(Token[]::new));
