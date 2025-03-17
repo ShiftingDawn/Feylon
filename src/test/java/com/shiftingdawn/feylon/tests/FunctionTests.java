@@ -24,7 +24,7 @@ public class FunctionTests extends AbstractTestHost {
 		final var sysOut = System.out;
 		final ByteArrayOutputStream boas = new ByteArrayOutputStream();
 		System.setOut(new PrintStream(boas, true));
-		this.run("function test print end 1 test");
+		this.run("function test dump end 1 test");
 		System.setOut(sysOut);
 		this.assertStackEmpty();
 		Assertions.assertEquals("1" + System.lineSeparator(), boas.toString());

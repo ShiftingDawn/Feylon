@@ -1,4 +1,4 @@
 import "math.fey"
 
-A B + print
-B A - print
+A B + dump
+B A - dump

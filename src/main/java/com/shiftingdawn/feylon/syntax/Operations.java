@@ -17,7 +17,7 @@ public enum Operations {
 	MEMSET("memset"),
 	MEMGET("memget"),
 
-	PRINT("print");
+	DUMP("dump");
 
 	private final String textValue;
 

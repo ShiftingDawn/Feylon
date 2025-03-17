@@ -57,7 +57,7 @@ class Assembler {
 					case MEM -> new MemInstruction();
 					case MEMSET -> new MemSetInstruction();
 					case MEMGET -> new MemGetInstruction();
-					case PRINT -> new PrintInstruction();
+					case DUMP -> new DumpInstruction();
 				}).orElseGet(() -> {
 					if (sourceStack.functions().containsKey(data)) {
 						return new CallFunctionInstruction(sourceStack.functions().get(data), finalPointer + 1);
