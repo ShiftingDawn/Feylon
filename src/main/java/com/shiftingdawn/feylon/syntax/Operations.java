@@ -10,6 +10,7 @@ public enum Operations {
 	DUP("dup"),
 	DUP2("dup2"),
 	SWAP("swap"),
+	SWAP2("swap2"),
 
 	SYSCALL3("syscall3"),
 

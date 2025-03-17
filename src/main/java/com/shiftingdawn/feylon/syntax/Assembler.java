@@ -53,6 +53,7 @@ class Assembler {
 					case DUP -> new DupInstruction();
 					case DUP2 -> new Dup2Instruction();
 					case SWAP -> new SwapInstruction();
+					case SWAP2 -> new Swap2Instruction();
 					case SYSCALL3 -> new SysCall3Instruction();
 					case MEM -> new MemInstruction();
 					case MEMSET -> new MemSetInstruction();

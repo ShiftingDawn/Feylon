@@ -32,6 +32,15 @@ public class IntrinsicTests extends AbstractTestHost {
 	}
 
 	@Test
+	public void testSwap2() {
+		this.run("1 2 3 swap2");
+		this.assertStack(1);
+		this.assertStack(3);
+		this.assertStack(2);
+		this.assertStackEmpty();
+	}
+
+	@Test
 	public void testAddition() {
 		this.run("1 2 +");
 		this.assertStack(3);

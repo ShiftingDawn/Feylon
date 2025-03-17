@@ -22,6 +22,7 @@ Feylon is currently interpreted in Java, but may be compiled to a native binary 
 | dup2     | 2    | 4      | Duplicates the last two items on the stack                                                   | `1 2 dup2` = 1, 2, 1, 2          |
 | pop      | 1    | 0      | Pops the last item on the stack, effectively removing it                                     | `1 2 pop` = 1                    |
 | swap     | 2    | 2      | Swap the last two items on the stack                                                         | `1 2 swap` = 2, 1                |
+| swap2    | 3    | 3      | Pulls the third last item on the stack to the top                                            | `1 2 3 swap` = 2, 3, 1           |
 | +        | 2    | 1      | Add two numbers and push the result onto the stack                                           | `1 2 +` = 3                      |
 | -        | 2    | 1      | Subtracts two number and push the result onto the stack                                      | `3 1 -` = 2                      |
 | *        | 2    | 1      | Multiply two numbers and push the result onto the stack                                      | `3 2 *` = 6                      |
@@ -41,7 +42,7 @@ Feylon is currently interpreted in Java, but may be compiled to a native binary 
 | mem      | 0    | 1      | Pushes a pointer to the start of shared memory onto the stack                                | `mem` = 0xff                     |
 | memset   | 2    | 0      | Pushes the last value on the stack into the pointer before that                              | `mem 10 memset` = \[...,10,...\] |
 | memget   | 1    | 1      | Pushes a value from memory at a popped pointer onto the stack                                | `mem memget` = 10                |
-| print    | 1    | 0      | Prints the last item on the stack to STDOUT                                                  | `1 2 + print` prints 3 to STDOUT |
+| dump     | 1    | 0      | Dumps the last item on the stack to STDOUT                                                   | `1 2 + dump` dumps 3 to STDOUT   |
 | syscall3 | 3    | 0      | See the [SysCall](#SysCall) section                                                          | `x y z syscall3`                 |
 
 ## The stack
