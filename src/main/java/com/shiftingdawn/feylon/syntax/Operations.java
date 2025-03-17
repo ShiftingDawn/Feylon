@@ -8,6 +8,8 @@ public enum Operations {
 	NOOP("noop"),
 	POP("pop"),
 	DUP("dup"),
+	DUP2("dup2"),
+	SWAP("swap"),
 
 	SYSCALL3("syscall3"),
 
