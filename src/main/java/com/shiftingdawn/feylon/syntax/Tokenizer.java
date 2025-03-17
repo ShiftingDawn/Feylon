@@ -1,6 +1,7 @@
 package com.shiftingdawn.feylon.syntax;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -14,15 +15,16 @@ class Tokenizer {
 	public record TokenStack(Token[] tokenized) {
 	}
 
-	public record Token(String fileName, int lineNr, int charPos, TokenType type, Object value) {
+	public record Token(String filePath, int lineNr, int charPos, TokenType type, Object value) {
 	}
 
-	public static TokenStack tokenize(final String fileName, final String[] lines) {
+	public static TokenStack tokenize(final String filePath, final Collection<String> lines) {
 		final ArrayList<Token> result = new ArrayList<>();
-		for (int row = 0; row < lines.length; ++row) {
-			final ParsedLineToken[] tokens = Tokenizer.parseLine(lines[row].split("//", 2)[0]);
+		int row = 0;
+		for (final String line : lines) {
+			final ParsedLineToken[] tokens = Tokenizer.parseLine(line.split("//", 2)[0]);
 			for (final ParsedLineToken token : tokens) {
-				result.add(new Token(fileName, row + 1, token.pos + 1, token.type, token.value));
+				result.add(new Token(filePath, row++ + 1, token.pos + 1, token.type, token.value));
 			}
 		}
 		return new TokenStack(result.toArray(Token[]::new));

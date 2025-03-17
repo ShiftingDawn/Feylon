@@ -5,6 +5,7 @@ import java.util.Optional;
 
 public enum Keyword {
 
+	IMPORT("import"),
 	FUNCTION("function"),
 	END("end"),
 	IF("if"),

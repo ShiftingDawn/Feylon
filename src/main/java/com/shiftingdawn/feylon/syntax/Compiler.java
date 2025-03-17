@@ -2,14 +2,16 @@ package com.shiftingdawn.feylon.syntax;
 
 import com.shiftingdawn.feylon.Stack;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
 public class Compiler {
 
-	public static Program compile(final String fileName, final Collection<String> lines) {
-		final Tokenizer.TokenStack tokenStack = Tokenizer.tokenize(fileName, lines.toArray(String[]::new));
+	public static Program compile(final String filePath, final Collection<String> lines) {
+		final Tokenizer.TokenStack tokenStack = Tokenizer.tokenize(filePath, lines);
 		final SourceStack sourceStack = Compiler.makeSourceStack(tokenStack);
 		return new Program(Assembler.assemble(sourceStack));
 	}
@@ -29,72 +31,97 @@ public class Compiler {
 	}
 
 	private static SourceStack makeSourceStack(final Tokenizer.TokenStack tokenStack) {
-		final InstructionSource[] result = new InstructionSource[tokenStack.tokenized().length];
+		final List<Tokenizer.Token> tokenList = new ArrayList<>(Arrays.asList(tokenStack.tokenized()));
+		Collections.reverse(tokenList);
+		final List<InstructionSource> result = new ArrayList<>();
 		final Stack instructionStack = new Stack();
 		final Map<String, Integer> functions = new HashMap<>();
-		for (int i = 0; i < tokenStack.tokenized().length; ++i) {
-			final Tokenizer.Token token = tokenStack.tokenized()[i];
+		while (!tokenList.isEmpty()) {
+			final Tokenizer.Token token = tokenList.getLast();
+			tokenList.removeLast();
 			switch (token.type()) {
-				case INT -> result[i] = new InstructionSource(OpType.PUSH_INT, token.value());
-				case STRING -> result[i] = new InstructionSource(OpType.PUSH_STRING, token.value());
+				case INT -> result.addLast(new InstructionSource(OpType.PUSH_INT, token.value()));
+				case STRING -> result.addLast(new InstructionSource(OpType.PUSH_STRING, token.value()));
 				case KEYWORD -> {
 					switch ((Keyword) token.value()) {
 						case END -> {
 							final int pointer = instructionStack.pop();
-							final InstructionSource instructionSource = result[pointer];
+							final InstructionSource instructionSource = result.get(pointer);
 							if (instructionSource.type == OpType.IF || instructionSource.type == OpType.ELSE) {
-								instructionSource.data = i;
-								result[i] = new InstructionSource(OpType.END, i + 1);
+								result.addLast(new InstructionSource(OpType.END, result.size() + 1));
+								instructionSource.data = result.size();
 							} else if (instructionSource.type == OpType.DO) {
-								result[i] = new InstructionSource(OpType.END, (int) instructionSource.data + 1);
-								instructionSource.data = i + 1;
+								result.addLast(new InstructionSource(OpType.END, (int) instructionSource.data + 1));
+								instructionSource.data = result.size();
 							} else if (instructionSource.type == OpType.FUNCTION) {
-								result[i] = new InstructionSource(OpType.RETURN, i + 1);
-								instructionSource.data = i + 1;
+								result.addLast(new InstructionSource(OpType.RETURN, result.size() + 1));
+								instructionSource.data = result.size();
 							} else {
 								throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
 							}
 						}
 						case IF -> {
-							instructionStack.push(i);
-							result[i] = new InstructionSource(OpType.IF, null);
+							instructionStack.push(result.size());
+							result.addLast(new InstructionSource(OpType.IF, null));
 						}
 						case ELSE -> {
 							final int pointer = instructionStack.pop();
-							instructionStack.push(i);
-							final InstructionSource instructionSource = result[pointer];
+							instructionStack.push(result.size());
+							final InstructionSource instructionSource = result.get(pointer);
 							if (instructionSource.type != OpType.IF) {
 								throw new AssertionError(OpType.ELSE + " operation refers to illegal operation " + instructionSource.type);
 							}
-							instructionSource.data = i + 1;
-							result[i] = new InstructionSource(OpType.ELSE, i);
+							result.addLast(new InstructionSource(OpType.ELSE, result.size()));
+							instructionSource.data = result.size();
 						}
 						case WHILE -> {
-							instructionStack.push(i);
-							result[i] = new InstructionSource(OpType.WHILE, null);
+							instructionStack.push(result.size());
+							result.addLast(new InstructionSource(OpType.WHILE, null));
 						}
 						case DO -> {
 							final int pointer = instructionStack.pop();
-							instructionStack.push(i);
-							result[i] = new InstructionSource(OpType.DO, pointer);
+							instructionStack.push(result.size());
+							result.addLast(new InstructionSource(OpType.DO, pointer));
 						}
 						case FUNCTION -> {
-							final Tokenizer.Token nextToken = tokenStack.tokenized()[i + 1];
+							final int selfPointer = result.size();
+							final Tokenizer.Token nextToken = tokenList.getLast();
+							tokenList.removeLast();
 							if (nextToken.type() != Tokenizer.TokenType.INSTRUCTION) {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
-							result[i] = new InstructionSource(OpType.FUNCTION, null);
-							instructionStack.push(i);
-							functions.put((String) nextToken.value(), i + 2);
-							i += 1;
+							instructionStack.push(selfPointer);
+							result.addLast(new InstructionSource(OpType.FUNCTION, null));
+							functions.put((String) nextToken.value(), selfPointer + 1);
+						}
+						case IMPORT -> {
+							final Tokenizer.Token nextToken = tokenList.getLast();
+							tokenList.removeLast();
+							if (nextToken.type() != Tokenizer.TokenType.STRING) {
+								throw new AssertionError("Expected import path, got: " + nextToken.type());
+							}
+							final File selfDir = new File(token.filePath()).getParentFile();
+							final Path importPath = selfDir.toPath().resolve((String) nextToken.value());
+							if (!Files.exists(importPath)) {
+								throw new AssertionError("Import does not exist: " + importPath);
+							}
+							try {
+								final Collection<String> importLines = Files.readAllLines(importPath);
+								final Tokenizer.TokenStack importStack = Tokenizer.tokenize(importPath.toString(), importLines);
+								final List<Tokenizer.Token> importTokenList = new ArrayList<>(Arrays.asList(importStack.tokenized()));
+								Collections.reverse(importTokenList);
+								tokenList.addAll(importTokenList);
+							} catch (final IOException e) {
+								throw new AssertionError("Could not load import: " + importPath, e);
+							}
 						}
 						default -> throw new AssertionError("Found unimplemented keyword " + token.value());
 					}
 				}
-				case INTRINSIC -> result[i] = new InstructionSource(OpType.INTRINSIC, token.value());
-				case INSTRUCTION -> result[i] = new InstructionSource(OpType.OPERATION, token.value());
+				case INTRINSIC -> result.addLast(new InstructionSource(OpType.INTRINSIC, token.value()));
+				case INSTRUCTION -> result.addLast(new InstructionSource(OpType.OPERATION, token.value()));
 			}
 		}
-		return new SourceStack(result, functions);
+		return new SourceStack(result.toArray(InstructionSource[]::new), functions);
 	}
 }

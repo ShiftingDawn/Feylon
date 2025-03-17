@@ -1,0 +1,9 @@
+function min
+  dup2 > if swap end
+  pop
+end
+
+function max
+  dup2 < if swap end
+  pop
+end
