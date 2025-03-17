@@ -113,6 +113,26 @@ end
 "This is an error" printE
 ```
 
+## Imports
+
+Files can import other files, virtually merging the two files.
+Imports are defined by declaring a path to the file to import as a string.
+The file path is relative to the file the `import` was made from, NOT the current working directory.
+
+All imported content will be available right after the `import` call, but not before it.
+
+```forth
+//Valid:
+import "math.fey"
+1 2 max
+print
+
+//Not valid:
+1 2 max
+import "math.fey"
+print
+```
+
 ## SysCall
 
 It is possible to execute [syscalls](https://chromium.googlesource.com/chromiumos/docs/+/master/constants/syscalls.md#x86_64-64_bit) in Feylon.
