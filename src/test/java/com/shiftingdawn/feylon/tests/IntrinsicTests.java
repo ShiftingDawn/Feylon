@@ -3,7 +3,15 @@ package com.shiftingdawn.feylon.tests;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class ArithmeticTests extends AbstractTestHost {
+public class IntrinsicTests extends AbstractTestHost {
+
+	@Test
+	public void testDup() {
+		this.run("1 dup");
+		this.assertStack(1);
+		this.assertStack(1);
+		this.assertStackEmpty();
+	}
 
 	@Test
 	public void testAddition() {
@@ -107,6 +115,58 @@ public class ArithmeticTests extends AbstractTestHost {
 		Assertions.assertThrows(ArithmeticException.class, () -> this.run("1 0 %"));
 		Assertions.assertDoesNotThrow(() -> this.run("0 1 %"));
 		this.run("0 1 %");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testEquals() {
+		this.run("1 1 + 2 =");
+		this.assertStack(1);
+		this.run("1 2 + 4 =");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testNotEquals() {
+		this.run("1 2 + 4 !=");
+		this.assertStack(1);
+		this.run("1 1 + 2 !=");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testLess() {
+		this.run("1 1 + 3 <");
+		this.assertStack(1);
+		this.run("1 1 + 2 <");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testGreater() {
+		this.run("1 1 + 1 >");
+		this.assertStack(1);
+		this.run("1 1 + 2 >");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testLessEqual() {
+		this.run("1 1 + 3 <=");
+		this.assertStack(1);
+		this.run("1 1 + 2 <=");
+		this.assertStack(1);
+		this.run("1 1 + 1 <=");
+		this.assertStack(0);
+	}
+
+	@Test
+	public void testGreaterEqual() {
+		this.run("1 1 + 1 >=");
+		this.assertStack(1);
+		this.run("1 1 + 2 >=");
+		this.assertStack(1);
+		this.run("1 1 + 3 >=");
 		this.assertStack(0);
 	}
 }

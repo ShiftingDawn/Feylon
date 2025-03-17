@@ -70,7 +70,7 @@ public class MemoryTests {
 	@Test
 	public void testMemSetInstruction() {
 		final Program program = Compiler.compile("<generated>", List.of("0 1 memset 10 10 memset"));
-		new Simulator(new Stack(), this.memory).execute(program);
+		new Simulator(new Stack(), new Stack(), this.memory).execute(program);
 		assertEquals(1, this.memory.getInt(0));
 		assertEquals(10, this.memory.getInt(10));
 	}
@@ -81,7 +81,7 @@ public class MemoryTests {
 		this.array.put(10, (byte) 10);
 		final Program program = Compiler.compile("<generated>", List.of("0 memget 10 memget"));
 		final Stack stack = new Stack();
-		new Simulator(stack, this.memory).execute(program);
+		new Simulator(stack, new Stack(), this.memory).execute(program);
 		assertEquals(10, stack.pop());
 		assertEquals(1, stack.pop());
 	}

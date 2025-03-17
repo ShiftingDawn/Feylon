@@ -1,10 +1,12 @@
 package com.shiftingdawn.feylon.ins;
 
+import com.shiftingdawn.feylon.Instruction;
 import com.shiftingdawn.feylon.Memory;
-import com.shiftingdawn.feylon.MemoryInstruction;
 import com.shiftingdawn.feylon.Stack;
 
-public class PushStringInstruction implements MemoryInstruction {
+import java.util.function.IntConsumer;
+
+public class PushStringInstruction implements Instruction {
 
 	private final String x;
 
@@ -13,10 +15,10 @@ public class PushStringInstruction implements MemoryInstruction {
 	}
 
 	@Override
-	public void apply(final Memory memory, final Stack stack) {
+	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
 		final int pointer = memory.getNextStringPointer();
 		final int writtenSize = memory.setString(pointer, this.x);
-		stack.push(writtenSize);
-		stack.push(pointer);
+		data.push(writtenSize);
+		data.push(pointer);
 	}
 }

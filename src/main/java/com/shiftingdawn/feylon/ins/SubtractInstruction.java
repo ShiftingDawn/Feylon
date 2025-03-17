@@ -1,14 +1,17 @@
 package com.shiftingdawn.feylon.ins;
 
 import com.shiftingdawn.feylon.Instruction;
+import com.shiftingdawn.feylon.Memory;
 import com.shiftingdawn.feylon.Stack;
+
+import java.util.function.IntConsumer;
 
 public class SubtractInstruction implements Instruction {
 
 	@Override
-	public void apply(final Stack stack) {
-		final int a = stack.pop();
-		final int b = stack.pop();
-		stack.push(b - a);
+	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
+		final int a = data.pop();
+		final int b = data.pop();
+		data.push(b - a);
 	}
 }

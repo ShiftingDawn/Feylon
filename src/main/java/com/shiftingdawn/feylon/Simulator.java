@@ -4,30 +4,29 @@ import com.shiftingdawn.feylon.syntax.Program;
 
 public class Simulator {
 
-	private final Stack stack;
+	private final Stack dataStack;
+	private final Stack returnStack;
 	private final Memory memory;
+	private int currentInstruction;
 
-	public Simulator(final Stack stack, final Memory memory) {
-		this.stack = stack;
+	public Simulator(final Stack dataStack, final Stack returnStack, final Memory memory) {
+		this.dataStack = dataStack;
+		this.returnStack = returnStack;
 		this.memory = memory;
 	}
 
 	public Simulator() {
-		this(new Stack(), new Memory());
+		this(new Stack(), new Stack(), new Memory());
 	}
 
 	public void execute(final Program program) {
 		final Instruction[] instructions = program.instructions();
-		final int[] pointer = {0};
-		while (pointer[0] < instructions.length) {
-			final Instruction instruction = instructions[pointer[0]++];
-			if (instruction instanceof final JumpInstruction jumpInstruction) {
-				jumpInstruction.apply(p -> pointer[0] = p, this.stack);
-			} else if (instruction instanceof final MemoryInstruction memoryInstruction) {
-				memoryInstruction.apply(this.memory, this.stack);
-			} else {
-				instruction.apply(this.stack);
-			}
+		while (this.currentInstruction < instructions.length) {
+			instructions[this.currentInstruction++].apply(this::jump, this.dataStack, this.returnStack, this.memory);
 		}
+	}
+
+	public void jump(final int pointer) {
+		this.currentInstruction = pointer;
 	}
 }

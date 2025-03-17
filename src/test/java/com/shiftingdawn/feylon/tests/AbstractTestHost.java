@@ -7,29 +7,29 @@ import com.shiftingdawn.feylon.StackUnderflowError;
 import com.shiftingdawn.feylon.syntax.Compiler;
 import com.shiftingdawn.feylon.syntax.Program;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 
 import java.util.List;
 
 public abstract class AbstractTestHost {
 
-	protected Stack stack;
+	protected Stack dataStack;
+	protected Stack returnStack;
 	protected Memory memory;
 
-	@BeforeEach
-	public void makeStack() {
-		this.stack = new Stack();
-	}
-
 	public void run(final String src) {
-		this.stack = new Stack();
+		this.dataStack = new Stack();
+		this.returnStack = new Stack();
 		this.memory = new Memory();
 		final Program program = Compiler.compile("<generated>", List.of(src));
-		new Simulator(this.stack, this.memory).execute(program);
+		new Simulator(this.dataStack, this.returnStack, this.memory).execute(program);
 	}
 
 	public void assertStack(final int value) {
-		Assertions.assertEquals(value, this.stack.pop());
+		Assertions.assertEquals(value, this.dataStack.pop());
+	}
+
+	public void assertReturnTo(final int value) {
+		Assertions.assertEquals(value, this.returnStack.pop());
 	}
 
 	public void assertMemory(final int pointer, final int value) {
@@ -37,6 +37,6 @@ public abstract class AbstractTestHost {
 	}
 
 	public void assertStackEmpty() {
-		Assertions.assertThrows(StackUnderflowError.class, this.stack::pop);
+		Assertions.assertThrows(StackUnderflowError.class, this.dataStack::pop);
 	}
 }

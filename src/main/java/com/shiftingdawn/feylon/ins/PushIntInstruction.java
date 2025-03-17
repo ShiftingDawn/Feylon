@@ -1,7 +1,10 @@
 package com.shiftingdawn.feylon.ins;
 
 import com.shiftingdawn.feylon.Instruction;
+import com.shiftingdawn.feylon.Memory;
 import com.shiftingdawn.feylon.Stack;
+
+import java.util.function.IntConsumer;
 
 public class PushIntInstruction implements Instruction {
 
@@ -12,7 +15,7 @@ public class PushIntInstruction implements Instruction {
 	}
 
 	@Override
-	public void apply(final Stack stack) {
-		stack.push(this.x);
+	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
+		data.push(this.x);
 	}
 }

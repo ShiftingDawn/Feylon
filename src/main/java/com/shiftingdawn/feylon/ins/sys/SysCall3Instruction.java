@@ -2,11 +2,13 @@ package com.shiftingdawn.feylon.ins.sys;
 
 import com.shiftingdawn.feylon.*;
 
-public class SysCall3Instruction implements MemoryInstruction {
+import java.util.function.IntConsumer;
+
+public class SysCall3Instruction implements Instruction {
 
 	@Override
-	public void apply(final Memory memory, final Stack stack) {
-		final int call = stack.pop();
+	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
+		final int call = data.pop();
 
 		final SysCalls sysCall = SysCalls.getByIndex(call)
 				.orElseThrow(() -> new AssertionError("SysCall " + call + " is not implemented"));
@@ -15,9 +17,9 @@ public class SysCall3Instruction implements MemoryInstruction {
 			throw new AssertionError("SysCall " + call + " required 3 arguments");
 		}
 
-		Register.RDX.set(stack.pop());
-		Register.RSI.set(stack.pop());
-		Register.RDI.set(stack.pop());
+		Register.RDX.set(data.pop());
+		Register.RSI.set(data.pop());
+		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
 
 		sysCall.instantiate().apply(memory);

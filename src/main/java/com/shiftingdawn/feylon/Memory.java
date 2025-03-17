@@ -8,7 +8,7 @@ public class Memory {
 	public static final int DEFAULT_MEMORY_SIZE = 64_000;
 	public static final int STRING_MEMORY_SIZE = 64_000;
 	private static final int MEMORY_LIMIT = Memory.DEFAULT_MEMORY_SIZE + Memory.STRING_MEMORY_SIZE;
-	private final ByteBuffer memory = ByteBuffer.allocateDirect(Memory.MEMORY_LIMIT);
+	private final ByteBuffer memory = ByteBuffer.allocate(Memory.MEMORY_LIMIT);
 	private int nextStringPointer = 0;
 
 	public void set(final int pointer, final byte x) {
