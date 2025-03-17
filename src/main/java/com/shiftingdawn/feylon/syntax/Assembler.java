@@ -33,6 +33,11 @@ class Assembler {
 					case GREATER -> new GreaterInstruction();
 					case LESS_OR_EQUAL -> new LessEqualInstruction();
 					case GREATER_OR_EQUAL -> new GreaterEqualInstruction();
+					case SHIFT_LEFT -> new BitShiftLeftInstruction();
+					case SHIFT_RIGHT -> new BitShiftRightInstruction();
+					case BITWISE_AND -> new BitwiseAndInstruction();
+					case BITWISE_OR -> new BitwiseOrInstruction();
+					case BITWISE_XOR -> new BitwiseXorInstruction();
 				};
 				case FUNCTION -> new FunctionInstruction((Integer) data);
 				case RETURN -> new ReturnInstruction();

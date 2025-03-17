@@ -16,7 +16,13 @@ public enum Intrinsic {
 	LESS("<"),
 	GREATER(">"),
 	LESS_OR_EQUAL("<="),
-	GREATER_OR_EQUAL(">=");
+	GREATER_OR_EQUAL(">="),
+
+	SHIFT_LEFT("<<"),
+	SHIFT_RIGHT(">>"),
+	BITWISE_AND("&"),
+	BITWISE_OR("|"),
+	BITWISE_XOR("^");
 
 	private final String textValue;
 

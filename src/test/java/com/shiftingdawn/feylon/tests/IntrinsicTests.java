@@ -187,4 +187,34 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.run("1 1 + 3 >=");
 		this.assertStack(0);
 	}
+
+	@Test
+	public void testShiftLeft() {
+		this.run("10 20 <<");
+		this.assertStack(10 << 20);
+	}
+
+	@Test
+	public void testShiftRight() {
+		this.run("10 20 >>");
+		this.assertStack(10 >> 20);
+	}
+
+	@Test
+	public void testBitAnd() {
+		this.run("10 20 &");
+		this.assertStack(10 & 20);
+	}
+
+	@Test
+	public void testBitOr() {
+		this.run("10 20 |");
+		this.assertStack(10 | 20);
+	}
+
+	@Test
+	public void testBitXor() {
+		this.run("10 20 ^");
+		this.assertStack(10 ^ 20);
+	}
 }

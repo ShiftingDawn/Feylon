@@ -33,6 +33,11 @@ Feylon is currently interpreted in Java, but may be compiled to a native binary 
 | \>       | 2    | 1      | Pushes 1 into the stack if the first number is larger than the second, 0 otherwise           | `3 2 >` = 1, `2 2 >` = 0         |
 | <=       | 2    | 1      | Pushes 1 into the stack if the first number is smaller or equal than the second, 0 otherwise | `2 3 <=` = 1, `2 3 <=` = 1       |
 | \>=      | 2    | 1      | Pushes 1 into the stack if the first number is larger or equal  than the second, 0 otherwise | `3 2 >=` = 1, `2 2 >=` = 1       |
+| \<<      | 2    | 1      | Shifts the last item on the stack left by the item before that                               | `2 2 <<` = 8                     |
+| \>>      | 2    | 1      | Shifts the last item on the stack right by the item before that                              | `8 1 >>` = 4                     |
+| \&       | 2    | 1      | Performs a bitwise AND on the last two items on the stack                                    | `13 37 &` = 5                    |
+| \|       | 2    | 1      | Performs a bitwise OR on the last two items on the stack                                     | `13 37 \|` = 45                  |
+| \^       | 2    | 1      | Performs a bitwise XOR on the last two items on the stack                                    | `13 37 ^` = 40                   |
 | mem      | 0    | 1      | Pushes a pointer to the start of shared memory onto the stack                                | `mem` = 0xff                     |
 | memset   | 2    | 0      | Pushes the last value on the stack into the pointer before that                              | `mem 10 memset` = \[...,10,...\] |
 | memget   | 1    | 1      | Pushes a value from memory at a popped pointer onto the stack                                | `mem memget` = 10                |
