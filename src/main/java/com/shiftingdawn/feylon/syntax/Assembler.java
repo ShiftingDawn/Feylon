@@ -4,6 +4,7 @@ import com.shiftingdawn.feylon.Instruction;
 import com.shiftingdawn.feylon.ins.*;
 import com.shiftingdawn.feylon.ins.jump.*;
 import com.shiftingdawn.feylon.ins.mem.MemGetInstruction;
+import com.shiftingdawn.feylon.ins.mem.MemInstruction;
 import com.shiftingdawn.feylon.ins.mem.MemSetInstruction;
 import com.shiftingdawn.feylon.ins.sys.SysCall3Instruction;
 
@@ -46,7 +47,7 @@ class Assembler {
 					case POP -> new PopInstruction();
 					case DUP -> new DupInstruction();
 					case SYSCALL3 -> new SysCall3Instruction();
-					case MEM -> new NoopInstruction();
+					case MEM -> new MemInstruction();
 					case MEMSET -> new MemSetInstruction();
 					case MEMGET -> new MemGetInstruction();
 					case PRINT -> new PrintInstruction();

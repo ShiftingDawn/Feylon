@@ -1,23 +1,8 @@
 package com.shiftingdawn.feylon.ins.jump;
 
-import com.shiftingdawn.feylon.Instruction;
-import com.shiftingdawn.feylon.Memory;
-import com.shiftingdawn.feylon.Stack;
+public class DoInstruction extends JumpIfNotInstruction {
 
-import java.util.function.IntConsumer;
-
-public class DoInstruction implements Instruction {
-
-	private final int pointer;
-
-	public DoInstruction(final int pointer) {
-		this.pointer = pointer;
-	}
-
-	@Override
-	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
-		if (data.pop() == 0) {
-			jump.accept(this.pointer);
-		}
+	public DoInstruction(int pointer) {
+		super(pointer);
 	}
 }
