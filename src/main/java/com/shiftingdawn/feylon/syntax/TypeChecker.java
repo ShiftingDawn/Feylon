@@ -24,21 +24,21 @@ public class TypeChecker {
 	private record Signature(Collection<PositionedType> inputs, Collection<PositionedType> outputs) {
 	}
 
-	public static void check(final Compiler.SourceStack sources, final int shutdownStackSize) {
+	public static void check(final CompilerContext sources, final int shutdownStackSize) {
 		final Map<Integer, OrderedList<PositionedType>> handledLoops = new HashMap<>();
 		final Map<String, Signature> funcSigs = new HashMap<>();
-		sources.functions().forEach((name, func) -> funcSigs.put(name, new Signature(new OrderedList<>(func.inputs()), new OrderedList<>(func.outputs()))));
+		sources.functions.forEach((name, func) -> funcSigs.put(name, new Signature(new OrderedList<>(func.inputs()), new OrderedList<>(func.outputs()))));
 
 		final OrderedList<Context> contexts = new OrderedList<>(List.of(new Context(new OrderedList<>(), 0, new OrderedList<>())));
 
 		while (!contexts.isEmpty()) {
 			final Context ctx = contexts.getLast();
-			if (ctx.pointer >= sources.sources().length) {
+			if (ctx.pointer >= sources.instructions.size()) {
 				TypeChecker.checkOutputs(ctx, shutdownStackSize);
 				contexts.removeLast();
 				continue;
 			}
-			final InstructionSource instruction = sources.sources()[ctx.pointer];
+			final InstructionSource instruction = sources.instructions.get(ctx.pointer);
 			switch (instruction.type) {
 				case PUSH_INT -> {
 					ctx.stack.append(new PositionedType(DataType.INTEGER, instruction.pos));
