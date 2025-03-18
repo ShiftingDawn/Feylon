@@ -8,5 +8,5 @@ public enum TokenType {
 	INTRINSIC,
 	KEYWORD,
 
-	INSTRUCTION
+	UNKNOWN,
 }

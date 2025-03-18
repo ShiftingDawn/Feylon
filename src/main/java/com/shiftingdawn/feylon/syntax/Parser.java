@@ -38,7 +38,7 @@ public class Parser {
 					}, () -> Keyword.getByText(fullToken).ifPresentOrElse(keyword -> {
 						result.append(new Token(tokenPos, TokenType.KEYWORD, fullToken, keyword));
 					}, () -> {
-						result.append(new Token(tokenPos, TokenType.INSTRUCTION, fullToken, fullToken));
+						result.append(new Token(tokenPos, TokenType.UNKNOWN, fullToken, null));
 					}));
 				}
 				pos = Parser.find(line, endPos, x -> !Character.isWhitespace(x));

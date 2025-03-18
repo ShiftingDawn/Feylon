@@ -17,7 +17,7 @@ public class Compiler {
 		return new Program(Assembler.assemble(sourceStack));
 	}
 
-	public record SourceStack(InstructionSource[] sources, Map<String, Integer> functions) {
+	public record SourceStack(InstructionSource[] sources, Map<String, FunctionDef> functions) {
 	}
 
 	private static SourceStack makeSourceStack(final SequencedCollection<Token> parsedProgram) {
@@ -25,7 +25,7 @@ public class Compiler {
 		OrderedList<InstructionSource> result = new OrderedList<>();
 
 		final Stack instructionStack = new Stack();
-		final Map<String, Integer> functions = new HashMap<>();
+		final Map<String, FunctionDef> functions = new HashMap<>();
 		final Map<String, InstructionSource[]> constants = new HashMap<>();
 
 		String currentConstant = null;
@@ -90,13 +90,49 @@ public class Compiler {
 						}
 						case FUNCTION -> {
 							final int selfPointer = result.size();
-							final Token nextToken = tokenList.pop();
-							if (nextToken.type() != TokenType.INSTRUCTION) {
+							Token nextToken = tokenList.pop();
+							if (nextToken.type() != TokenType.UNKNOWN) {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
 							result.append(new InstructionSource(token, InstructionType.FUNCTION, null));
-							functions.put(nextToken.txt(), selfPointer + 1);
+							final String funcName = nextToken.txt();
+							final OrderedList<DataType> inputTypeList = new OrderedList<>();
+							while (!tokenList.isEmpty()) {
+								nextToken = tokenList.pop();
+								if (nextToken.type() != TokenType.UNKNOWN) {
+									throw new AssertionError("Expected function argument type, got: " + nextToken.type());
+								}
+								if (nextToken.txt().equals("->")) {
+									break;
+								}
+								final Token finalNextToken = nextToken;
+								final DataType type = DataType.getByText(nextToken.txt())
+										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
+								inputTypeList.append(type);
+							}
+
+							if (tokenList.isEmpty()) {
+								throw new AssertionError("Expected function return types, but there are no more tokens.");
+							}
+							final OrderedList<DataType> outputTypeList = new OrderedList<>();
+							while (!tokenList.isEmpty()) {
+								nextToken = tokenList.pop();
+								if (nextToken.type() != TokenType.UNKNOWN) {
+									throw new AssertionError("Expected function argument type, got: " + nextToken.type());
+								}
+								if (nextToken.txt().equals("->")) {
+									break;
+								}
+								final Token finalNextToken = nextToken;
+								final DataType type = DataType.getByText(nextToken.txt())
+										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
+								outputTypeList.append(type);
+							}
+							if (tokenList.isEmpty()) {
+								throw new AssertionError("Expected function body, but there are no more tokens.");
+							}
+							functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputTypeList.toArray(DataType[]::new), outputTypeList.toArray(DataType[]::new)));
 						}
 						case IMPORT -> {
 							final Token nextToken = tokenList.pop();
@@ -119,7 +155,7 @@ public class Compiler {
 						}
 						case CONST -> {
 							final Token nextToken = tokenList.pop();
-							if (nextToken.type() != TokenType.INSTRUCTION) {
+							if (nextToken.type() != TokenType.UNKNOWN) {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							currentConstant = nextToken.txt();
@@ -129,13 +165,13 @@ public class Compiler {
 						default -> throw new AssertionError("Found unimplemented keyword " + token.type());
 					}
 				}
-				case INSTRUCTION -> {
+				case UNKNOWN -> {
 					if (functions.containsKey(token.txt())) {
 						result.append(new InstructionSource(token, InstructionType.CALL, token.txt()));
 					} else if (constants.containsKey(token.txt())) {
 						result.addAll(Arrays.asList(constants.get(token.txt())));
 					} else {
-						result.append(new InstructionSource(token, InstructionType.INSTRUCTION, token.operand()));
+						result.append(new InstructionSource(token, InstructionType.INSTRUCTION, token.txt()));
 					}
 				}
 				default -> throw new AssertionError("Encountered unhandled AbstractToken: " + token.getClass().getName());
