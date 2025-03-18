@@ -8,6 +8,7 @@ public enum InstructionType {
 	INTRINSIC,
 
 	JUMP,
+	CALL,
 	RETURN,
 
 	IF,

@@ -17,7 +17,6 @@ class Assembler {
 				continue;
 			}
 			final Object data = sourceStack.sources()[pointer].data;
-			final int finalPointer = pointer;
 			result[pointer] = switch (sourceStack.sources()[pointer].type) {
 				case PUSH_INT -> new PushIntInstruction((Integer) data);
 				case PUSH_STRING -> new PushStringInstruction((String) data);
@@ -40,6 +39,7 @@ class Assembler {
 					case BITWISE_XOR -> new BitwiseXorInstruction();
 				};
 				case FUNCTION -> new FunctionInstruction((Integer) data);
+				case CALL -> new CallFunctionInstruction(sourceStack.functions().get((String) data), pointer + 1);
 				case RETURN -> new ReturnInstruction();
 				case JUMP -> new JumpInstruction((Integer) data);
 				case IF -> new IfInstruction((Integer) data);
@@ -59,13 +59,7 @@ class Assembler {
 					case MEMSET -> new MemSetInstruction();
 					case MEMGET -> new MemGetInstruction();
 					case DUMP -> new DumpInstruction();
-				}).orElseGet(() -> {
-					if (sourceStack.functions().containsKey(data)) {
-						return new CallFunctionInstruction(sourceStack.functions().get(data), finalPointer + 1);
-					} else {
-						throw new AssertionError("Encountered unknown operation '%s'".formatted(data));
-					}
-				});
+				}).orElseThrow(() -> new AssertionError("Encountered unknown operation '%s'".formatted(data)));
 			};
 		}
 		return result;

@@ -130,7 +130,9 @@ public class Compiler {
 					}
 				}
 				case INSTRUCTION -> {
-					if (constants.containsKey(token.txt())) {
+					if (functions.containsKey(token.txt())) {
+						result.append(new InstructionSource(token, InstructionType.CALL, token.txt()));
+					} else if (constants.containsKey(token.txt())) {
 						result.addAll(Arrays.asList(constants.get(token.txt())));
 					} else {
 						result.append(new InstructionSource(token, InstructionType.INSTRUCTION, token.operand()));
