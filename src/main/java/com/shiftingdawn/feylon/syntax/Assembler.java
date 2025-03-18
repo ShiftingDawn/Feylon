@@ -41,19 +41,19 @@ class Assembler {
 				};
 				case FUNCTION -> new FunctionInstruction((Integer) data);
 				case RETURN -> new ReturnInstruction();
-				case END -> new EndInstruction((Integer) data);
+				case JUMP -> new JumpInstruction((Integer) data);
 				case IF -> new IfInstruction((Integer) data);
 				case ELSE -> new ElseInstruction((Integer) data);
 				case WHILE -> new WhileInstruction();
 				case DO -> new DoInstruction((Integer) data);
 
-				case OPERATION -> Operations.getByText((String) data).map(operation -> switch (operation) {
+				case INSTRUCTION -> Operations.getByText((String) data).map(operation -> switch (operation) {
 					case NOOP -> new NoopInstruction();
 					case POP -> new PopInstruction();
 					case DUP -> new DupInstruction();
-					case DUP2 -> new Dup2Instruction();
 					case SWAP -> new SwapInstruction();
-					case SWAP2 -> new Swap2Instruction();
+					case OVER -> new OverInstruction();
+					case ROT -> new RotInstruction();
 					case SYSCALL3 -> new SysCall3Instruction();
 					case MEM -> new MemInstruction();
 					case MEMSET -> new MemSetInstruction();

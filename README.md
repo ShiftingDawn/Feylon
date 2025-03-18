@@ -19,10 +19,10 @@ Feylon is currently interpreted in Java, but may be compiled to a native binary 
 | Symbol   | Pops | Pushes | Description                                                                                  | Example                          |
 |----------|------|--------|----------------------------------------------------------------------------------------------|----------------------------------|
 | dup      | 1    | 2      | Duplicates the last item on the stack                                                        | `1 dup` = 1, 1                   |
-| dup2     | 2    | 4      | Duplicates the last two items on the stack                                                   | `1 2 dup2` = 1, 2, 1, 2          |
 | pop      | 1    | 0      | Pops the last item on the stack, effectively removing it                                     | `1 2 pop` = 1                    |
 | swap     | 2    | 2      | Swap the last two items on the stack                                                         | `1 2 swap` = 2, 1                |
-| swap2    | 3    | 3      | Pulls the third last item on the stack to the top                                            | `1 2 3 swap` = 2, 3, 1           |
+| over     | 2    | 4      | Duplicates the second-last item on the stack and places it at the end of the stack           | `1 2 over` = 1, 2, 1             |
+| rot      | 3    | 3      | Pulls the third last item on the stack to the top                                            | `1 2 3 rot` = 2, 3, 1            |
 | +        | 2    | 1      | Add two numbers and push the result onto the stack                                           | `1 2 +` = 3                      |
 | -        | 2    | 1      | Subtracts two number and push the result onto the stack                                      | `3 1 -` = 2                      |
 | *        | 2    | 1      | Multiply two numbers and push the result onto the stack                                      | `3 2 *` = 6                      |
@@ -102,7 +102,7 @@ Code can be reused by wrapping it in a function.
 
 ```forth
 function max
-  dup2 < if swap end
+  over over < if swap end
   pop
 end
 

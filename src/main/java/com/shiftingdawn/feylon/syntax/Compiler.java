@@ -11,67 +11,54 @@ import java.util.*;
 
 public class Compiler {
 
-	public static Program compile(final String filePath, final Collection<String> lines) {
-		final Tokenizer.TokenStack tokenStack = Tokenizer.tokenize(filePath, lines);
-		final SourceStack sourceStack = Compiler.makeSourceStack(tokenStack);
+	public static Program compile(final String file, final Collection<String> lines) {
+		final SequencedCollection<Token> parsedProgram = Parser.parseProgram(file, lines);
+		final SourceStack sourceStack = Compiler.makeSourceStack(parsedProgram);
 		return new Program(Assembler.assemble(sourceStack));
 	}
 
 	public record SourceStack(InstructionSource[] sources, Map<String, Integer> functions) {
 	}
 
-	public static class InstructionSource {
-
-		public final OpType type;
-		public final Location location;
-		public Object data;
-
-		public InstructionSource(final OpType type, final Location location, final Object data) {
-			this.type = type;
-			this.location = location;
-			this.data = data;
-		}
-	}
-
-	private static SourceStack makeSourceStack(final Tokenizer.TokenStack tokenStack) {
-		final OrderedList<AbstractToken<?>> tokenList = new OrderedList<>(tokenStack.tokenized());
-		Collections.reverse(tokenList);
-		List<InstructionSource> result = new ArrayList<>();
+	private static SourceStack makeSourceStack(final SequencedCollection<Token> parsedProgram) {
+		final OrderedList<Token> tokenList = new OrderedList<>(parsedProgram).reverse();
+		OrderedList<InstructionSource> result = new OrderedList<>();
 
 		final Stack instructionStack = new Stack();
 		final Map<String, Integer> functions = new HashMap<>();
 		final Map<String, InstructionSource[]> constants = new HashMap<>();
 
 		String currentConstant = null;
-		List<InstructionSource> constantResultListCache = new ArrayList<>();
+		OrderedList<InstructionSource> constantResultListCache = new OrderedList<>();
 
 		while (!tokenList.isEmpty()) {
-			final AbstractToken<?> token = tokenList.pop();
-			switch (token) {
-				case final AbstractToken.Int intToken -> result.addLast(new InstructionSource(OpType.PUSH_INT, token.location, intToken.value));
-				case final AbstractToken.String stringToken -> result.addLast(new InstructionSource(OpType.PUSH_STRING, token.location, stringToken.value));
-				case final AbstractToken.Keyword keywordToken -> {
-					switch (keywordToken.value) {
+			final Token token = tokenList.pop();
+			switch (token.type()) {
+				case INTEGER -> result.append(new InstructionSource(token, InstructionType.PUSH_INT, token.operand()));
+				case STRING -> result.append(new InstructionSource(token, InstructionType.PUSH_STRING, token.operand()));
+				case INTRINSIC -> result.append(new InstructionSource(token, InstructionType.INTRINSIC, token.operand()));
+				case KEYWORD -> {
+					switch ((Keyword) token.operand()) {
 						case END -> {
 							if (currentConstant != null) {
 								constants.put(currentConstant, result.toArray(InstructionSource[]::new));
 								result = constantResultListCache;
 								currentConstant = null;
-								constantResultListCache = new ArrayList<>();
+								constantResultListCache = new OrderedList<>();
 							} else {
 								final int pointer = instructionStack.pop();
 								final InstructionSource instructionSource = result.get(pointer);
 								switch (instructionSource.type) {
 									case IF, ELSE -> {
-										result.addLast(new InstructionSource(OpType.END, token.location, result.size() + 1));
+										result.append(new InstructionSource(token, InstructionType.JUMP, result.size() + 1));
 										instructionSource.data = result.size();
 									}
 									case DO -> {
-										result.addLast(new InstructionSource(OpType.END, token.location, (int) instructionSource.data + 1));
+										result.append(new InstructionSource(token, InstructionType.JUMP, (int) instructionSource.data + 1));
 										instructionSource.data = result.size();
 									}
 									case FUNCTION -> {
-										result.addLast(new InstructionSource(OpType.RETURN, token.location, result.size() + 1));
+										result.append(new InstructionSource(token, InstructionType.RETURN, result.size() + 1));
 										instructionSource.data = result.size();
 									}
 									default -> throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
@@ -80,75 +67,73 @@ public class Compiler {
 						}
 						case IF -> {
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.IF, token.location, null));
+							result.append(new InstructionSource(token, InstructionType.IF, null));
 						}
 						case ELSE -> {
 							final int pointer = instructionStack.pop();
 							instructionStack.push(result.size());
 							final InstructionSource instructionSource = result.get(pointer);
-							if (instructionSource.type != OpType.IF) {
-								throw new AssertionError(OpType.ELSE + " operation refers to illegal operation " + instructionSource.type);
+							if (instructionSource.type != InstructionType.IF) {
+								throw new AssertionError(Keyword.ELSE + " keyword refers to illegal operation " + instructionSource.type);
 							}
-							result.addLast(new InstructionSource(OpType.ELSE, token.location, result.size()));
+							result.append(new InstructionSource(token, InstructionType.ELSE, result.size()));
 							instructionSource.data = result.size();
 						}
 						case WHILE -> {
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.WHILE, token.location, null));
+							result.append(new InstructionSource(token, InstructionType.WHILE, null));
 						}
 						case DO -> {
 							final int pointer = instructionStack.pop();
 							instructionStack.push(result.size());
-							result.addLast(new InstructionSource(OpType.DO, token.location, pointer));
+							result.append(new InstructionSource(token, InstructionType.DO, pointer));
 						}
 						case FUNCTION -> {
 							final int selfPointer = result.size();
-							final AbstractToken<?> nextToken = tokenList.pop();
-							if (!(nextToken instanceof final AbstractToken.Instruction instructionToken)) {
-								throw new AssertionError("Expected function name, got: " + nextToken.type);
+							final Token nextToken = tokenList.pop();
+							if (nextToken.type() != TokenType.INSTRUCTION) {
+								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
-							result.addLast(new InstructionSource(OpType.FUNCTION, token.location, null));
-							functions.put(instructionToken.value, selfPointer + 1);
+							result.append(new InstructionSource(token, InstructionType.FUNCTION, null));
+							functions.put(nextToken.txt(), selfPointer + 1);
 						}
 						case IMPORT -> {
-							final AbstractToken<?> nextToken = tokenList.pop();
-							if (!(nextToken instanceof final AbstractToken.String stringToken)) {
-								throw new AssertionError("Expected import path, got: " + nextToken.type);
+							final Token nextToken = tokenList.pop();
+							if (nextToken.type() != TokenType.STRING) {
+								throw new AssertionError("Expected import path, got: " + nextToken.type());
 							}
-							final File selfDir = new File(token.location.filePath()).getParentFile();
-							final Path importPath = selfDir.toPath().resolve(stringToken.value);
+							final File selfDir = new File(token.pos().file()).getParentFile();
+							final Path importPath = selfDir.toPath().resolve((String) nextToken.operand());
 							if (!Files.exists(importPath)) {
 								throw new AssertionError("Import does not exist: " + importPath);
 							}
 							try {
 								final Collection<String> importLines = Files.readAllLines(importPath);
-								final Tokenizer.TokenStack importStack = Tokenizer.tokenize(importPath.toString(), importLines);
-								final OrderedList<AbstractToken<?>> importTokenList = new OrderedList<>(importStack.tokenized());
-								Collections.reverse(importTokenList);
+								final SequencedCollection<Token> importStack = Parser.parseProgram(importPath.toString(), importLines);
+								final OrderedList<Token> importTokenList = new OrderedList<>(importStack).reverse();
 								tokenList.addAll(importTokenList);
 							} catch (final IOException e) {
 								throw new AssertionError("Could not load import: " + importPath, e);
 							}
 						}
 						case CONST -> {
-							final AbstractToken<?> nextToken = tokenList.pop();
-							if (!(nextToken instanceof final AbstractToken.Instruction instructionToken)) {
-								throw new AssertionError("Expected function name, got: " + nextToken.type);
+							final Token nextToken = tokenList.pop();
+							if (nextToken.type() != TokenType.INSTRUCTION) {
+								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
-							currentConstant = instructionToken.value;
+							currentConstant = nextToken.txt();
 							constantResultListCache = result;
-							result = new ArrayList<>();
+							result = new OrderedList<>();
 						}
-						default -> throw new AssertionError("Found unimplemented keyword " + token.value);
+						default -> throw new AssertionError("Found unimplemented keyword " + token.type());
 					}
 				}
-				case final AbstractToken.Intrinsic intrinsicToken -> result.addLast(new InstructionSource(OpType.INTRINSIC, token.location, intrinsicToken.value));
-				case final AbstractToken.Instruction instructionToken -> {
-					if (constants.containsKey(instructionToken.value)) {
-						result.addAll(Arrays.asList(constants.get(instructionToken.value)));
+				case INSTRUCTION -> {
+					if (constants.containsKey(token.txt())) {
+						result.addAll(Arrays.asList(constants.get(token.txt())));
 					} else {
-						result.addLast(new InstructionSource(OpType.OPERATION, token.location, instructionToken.value));
+						result.append(new InstructionSource(token, InstructionType.INSTRUCTION, token.operand()));
 					}
 				}
 				default -> throw new AssertionError("Encountered unhandled AbstractToken: " + token.getClass().getName());

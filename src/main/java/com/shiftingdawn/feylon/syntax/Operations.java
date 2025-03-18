@@ -8,9 +8,9 @@ public enum Operations {
 	NOOP("noop"),
 	POP("pop"),
 	DUP("dup"),
-	DUP2("dup2"),
 	SWAP("swap"),
-	SWAP2("swap2"),
+	OVER("over"),
+	ROT("rot"),
 
 	SYSCALL3("syscall3"),
 

@@ -6,7 +6,7 @@ import com.shiftingdawn.feylon.Stack;
 
 import java.util.function.IntConsumer;
 
-public class Dup2Instruction implements Instruction {
+public class OverInstruction implements Instruction {
 
 	@Override
 	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {
@@ -15,6 +15,5 @@ public class Dup2Instruction implements Instruction {
 		data.push(b);
 		data.push(a);
 		data.push(b);
-		data.push(a);
 	}
 }

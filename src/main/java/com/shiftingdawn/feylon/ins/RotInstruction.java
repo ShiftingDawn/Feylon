@@ -6,7 +6,7 @@ import com.shiftingdawn.feylon.Stack;
 
 import java.util.function.IntConsumer;
 
-public class Swap2Instruction implements Instruction {
+public class RotInstruction implements Instruction {
 
 	@Override
 	public void apply(final IntConsumer jump, final Stack data, final Stack returnStack, final Memory memory) {

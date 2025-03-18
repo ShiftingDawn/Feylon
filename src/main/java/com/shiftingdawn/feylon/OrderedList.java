@@ -3,6 +3,7 @@ package com.shiftingdawn.feylon;
 import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 public class OrderedList<E> extends ArrayList<E> {
 
@@ -24,5 +25,10 @@ public class OrderedList<E> extends ArrayList<E> {
 		final E result = this.getLast();
 		this.removeLast();
 		return result;
+	}
+
+	public OrderedList<E> reverse() {
+		Collections.reverse(this);
+		return this;
 	}
 }
