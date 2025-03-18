@@ -11,10 +11,24 @@ import java.util.*;
 
 public class Compiler {
 
-	public static Program compile(final String file, final Collection<String> lines) {
+	private static final List<String> TOKENS_TO_REMOVE = Arrays.asList(
+			Intrinsic.CAST_INTEGER.textValue, Intrinsic.CAST_BOOLEAN.textValue, Intrinsic.CAST_POINTER.textValue
+	);
+
+	public static Program compile(final String file, final Collection<String> lines, final int shutdownStackSize) {
 		final SequencedCollection<Token> parsedProgram = Parser.parseProgram(file, lines);
 		final SourceStack sourceStack = Compiler.makeSourceStack(parsedProgram);
+		TypeChecker.check(sourceStack, shutdownStackSize);
+		for (int i = 0; i < sourceStack.sources.length; ++i) {
+			if (Compiler.TOKENS_TO_REMOVE.contains(sourceStack.sources[i].txt)) {
+				sourceStack.sources[i] = null;
+			}
+		}
 		return new Program(Assembler.assemble(sourceStack));
+	}
+
+	public static Program compile(final String file, final Collection<String> lines) {
+		return Compiler.compile(file, lines, 0);
 	}
 
 	public record SourceStack(InstructionSource[] sources, Map<String, FunctionDef> functions) {
@@ -97,7 +111,7 @@ public class Compiler {
 							instructionStack.push(selfPointer);
 							result.append(new InstructionSource(token, InstructionType.FUNCTION, null));
 							final String funcName = nextToken.txt();
-							final OrderedList<DataType> inputTypeList = new OrderedList<>();
+							final OrderedList<PositionedType> inputTypeList = new OrderedList<>();
 							while (!tokenList.isEmpty()) {
 								nextToken = tokenList.pop();
 								if (nextToken.type() != TokenType.UNKNOWN) {
@@ -109,13 +123,13 @@ public class Compiler {
 								final Token finalNextToken = nextToken;
 								final DataType type = DataType.getByText(nextToken.txt())
 										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
-								inputTypeList.append(type);
+								inputTypeList.append(new PositionedType(type, nextToken.pos()));
 							}
 
 							if (tokenList.isEmpty()) {
 								throw new AssertionError("Expected function return types, but there are no more tokens.");
 							}
-							final OrderedList<DataType> outputTypeList = new OrderedList<>();
+							final OrderedList<PositionedType> outputTypeList = new OrderedList<>();
 							while (!tokenList.isEmpty()) {
 								nextToken = tokenList.pop();
 								if (nextToken.type() != TokenType.UNKNOWN) {
@@ -127,12 +141,12 @@ public class Compiler {
 								final Token finalNextToken = nextToken;
 								final DataType type = DataType.getByText(nextToken.txt())
 										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
-								outputTypeList.append(type);
+								outputTypeList.append(new PositionedType(type, nextToken.pos()));
 							}
 							if (tokenList.isEmpty()) {
 								throw new AssertionError("Expected function body, but there are no more tokens.");
 							}
-							functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputTypeList.toArray(DataType[]::new), outputTypeList.toArray(DataType[]::new)));
+							functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputTypeList.toArray(PositionedType[]::new), outputTypeList.toArray(PositionedType[]::new)));
 						}
 						case IMPORT -> {
 							final Token nextToken = tokenList.pop();

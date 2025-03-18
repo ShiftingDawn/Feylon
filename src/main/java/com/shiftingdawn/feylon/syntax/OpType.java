@@ -3,6 +3,7 @@ package com.shiftingdawn.feylon.syntax;
 public enum OpType {
 
 	PUSH_INT,
+	PUSH_BOOLEAN,
 	PUSH_STRING,
 	INTRINSIC,
 

@@ -23,6 +23,9 @@ public class Simulator {
 		final Instruction[] instructions = program.instructions();
 		while (this.currentInstruction < instructions.length) {
 			final Instruction instruction = instructions[this.currentInstruction++];
+			if (instruction == null) {
+				continue;
+			}
 			instruction.apply(this::jump, this.dataStack, this.returnStack, this.memory);
 		}
 	}

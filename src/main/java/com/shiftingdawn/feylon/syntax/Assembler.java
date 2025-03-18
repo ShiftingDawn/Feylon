@@ -21,6 +21,8 @@ class Assembler {
 				case PUSH_INT -> new PushIntInstruction((Integer) data);
 				case PUSH_STRING -> new PushStringInstruction((String) data);
 				case INTRINSIC -> switch ((Intrinsic) data) {
+					case TRUE -> new PushBooleanInstruction(true);
+					case FALSE -> new PushBooleanInstruction(false);
 					case ADD -> new AddInstruction();
 					case SUBTRACT -> new SubtractInstruction();
 					case MULTIPLY -> new MultiplyInstruction();
@@ -37,6 +39,8 @@ class Assembler {
 					case BITWISE_AND -> new BitwiseAndInstruction();
 					case BITWISE_OR -> new BitwiseOrInstruction();
 					case BITWISE_XOR -> new BitwiseXorInstruction();
+
+					case CAST_INTEGER, CAST_BOOLEAN, CAST_POINTER -> throw new AssertionError("This should not be here");
 				};
 				case FUNCTION -> new FunctionInstruction((Integer) data);
 				case CALL -> new CallFunctionInstruction(sourceStack.functions().get((String) data), pointer + 1);

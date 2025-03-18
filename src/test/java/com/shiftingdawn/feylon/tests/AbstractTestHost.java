@@ -16,11 +16,11 @@ public abstract class AbstractTestHost {
 	protected Stack returnStack;
 	protected Memory memory;
 
-	public void run(final String src) {
+	public void run(final String src, final int vars) {
 		this.dataStack = new Stack();
 		this.returnStack = new Stack();
 		this.memory = new Memory();
-		final Program program = Compiler.compile("<generated>", List.of(src));
+		final Program program = Compiler.compile("<generated>", List.of(src), vars);
 		new Simulator(this.dataStack, this.returnStack, this.memory).execute(program);
 	}
 

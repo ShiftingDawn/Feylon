@@ -6,6 +6,7 @@ import java.util.Optional;
 public enum DataType {
 
 	INTEGER("int"),
+	BOOLEAN("bool"),
 	POINTER("ptr");
 
 	private final String textValue;

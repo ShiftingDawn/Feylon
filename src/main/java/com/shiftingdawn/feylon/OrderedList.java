@@ -2,6 +2,7 @@ package com.shiftingdawn.feylon;
 
 import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -12,6 +13,10 @@ public class OrderedList<E> extends ArrayList<E> {
 
 	public OrderedList(final Collection<? extends E> c) {
 		super(c);
+	}
+
+	public OrderedList(final E[] arr) {
+		super(Arrays.asList(arr));
 	}
 
 	@Serial

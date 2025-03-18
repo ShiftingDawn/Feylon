@@ -5,6 +5,9 @@ import java.util.Optional;
 
 public enum Intrinsic {
 
+	TRUE("true"),
+	FALSE("false"),
+
 	ADD("+"),
 	SUBTRACT("-"),
 	MULTIPLY("*"),
@@ -22,9 +25,13 @@ public enum Intrinsic {
 	SHIFT_RIGHT(">>"),
 	BITWISE_AND("&"),
 	BITWISE_OR("|"),
-	BITWISE_XOR("^");
+	BITWISE_XOR("^"),
 
-	private final String textValue;
+	CAST_INTEGER("cast-int"),
+	CAST_BOOLEAN("cast-bool"),
+	CAST_POINTER("cast-ptr");
+
+	public final String textValue;
 
 	Intrinsic(final String textValue) {
 		this.textValue = textValue;
