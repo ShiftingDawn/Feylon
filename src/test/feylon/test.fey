@@ -1,5 +1,0 @@
-function printE(str)
-  2 1 syscall3
-end
-
-"This is an error" printE

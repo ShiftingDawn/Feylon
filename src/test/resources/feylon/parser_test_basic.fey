@@ -1,0 +1,24 @@
+//1 2 3 3 2 1 1 2 3 3 2 1 2 4 6 1 0 0
+
+0 1 + dump
+1 1 + dump //Comment ignored
+1 2 + dump
+4 -1 + dump
+-4 6 + dump
+2 -1 + dump
+
+3 2 - dump
+2 0 - dump
+6 3 - dump
+-3 -6 - dump
+0 -2 - dump
+-1 -2 - dump
+
+1 2 * dump
+2 2 * dump
+3 2 * dump
+
+true dump
+false dump
+
+1 2 = dump
