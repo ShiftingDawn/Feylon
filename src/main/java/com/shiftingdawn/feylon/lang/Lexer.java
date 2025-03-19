@@ -55,6 +55,17 @@ public final class Lexer {
 					endPos += 1;
 					tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.FUNCTION_DEF, line.substring(pos, endPos)));
 					pos = endPos + 1;
+				} else if (Keywords.CONST.textValue.equals(tokenText)) {
+					pos = Lexer.find(line, pos, x -> !Character.isWhitespace(x));
+					if (pos + 1 >= line.length()) {
+						throw new CompilerException(new TokenPos(file, lineNr, pos - endPos - 1), CompilerErrors.INVALID_CONSTANT_SIGNATURE, "Function is missing a name and type definition");
+					}
+					endPos = Lexer.find(line, pos, Character::isWhitespace);
+					if (endPos == line.length()) {
+						throw new CompilerException(new TokenPos(file, lineNr, pos), CompilerErrors.INVALID_CONSTANT_SIGNATURE, "Function is missing a type definition");
+					}
+					tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.CONST_NAME, line.substring(pos, endPos)));
+					pos = endPos + 1;
 				}
 			}
 		}
@@ -111,6 +122,7 @@ public final class Lexer {
 			switch (token.type()) {
 				case STRING -> result.append(new RawToken(token.pos(), RawTokenType.STRING, token.txt(), token.txt().substring(1, token.txt().length() - 1)));
 				case FUNCTION_DEF -> result.append(new RawToken(token.pos(), RawTokenType.FUNCTION_NAME, token.txt(), token.txt()));
+				case CONST_NAME -> result.append(new RawToken(token.pos(), RawTokenType.CONST_NAME, token.txt(), token.txt()));
 				case OTHER -> {
 					try {
 						result.append(new RawToken(token.pos(), RawTokenType.INT, token.txt(), Integer.parseInt(token.txt())));

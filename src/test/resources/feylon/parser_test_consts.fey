@@ -1,0 +1,13 @@
+//1 2 3 4
+
+const TEST 1 end
+TEST dump
+
+const TEST2 1 1 + end
+TEST2 dump
+
+const TEST3 4 1 - end
+TEST3 dump
+
+const TEST4 2 2 * end
+TEST4 dump

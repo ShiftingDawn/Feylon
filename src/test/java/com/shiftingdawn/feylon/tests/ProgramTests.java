@@ -23,6 +23,7 @@ public class ProgramTests {
 	private static final String[] TESTS = new String[]{
 			"parser_test_basic",
 			"parser_test_blocks",
+			"parser_test_consts",
 	};
 
 	@ParameterizedTest

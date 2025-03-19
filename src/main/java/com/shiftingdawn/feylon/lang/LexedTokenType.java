@@ -4,5 +4,6 @@ public enum LexedTokenType {
 
 	OTHER,
 	STRING,
-	FUNCTION_DEF
+	FUNCTION_DEF,
+	CONST_NAME,
 }

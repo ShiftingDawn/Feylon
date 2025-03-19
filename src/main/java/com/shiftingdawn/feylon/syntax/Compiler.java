@@ -1,5 +1,9 @@
 package com.shiftingdawn.feylon.syntax;
 
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.Stack;
+import com.shiftingdawn.feylon.lang.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -8,16 +12,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import com.shiftingdawn.feylon.OrderedList;
-import com.shiftingdawn.feylon.Stack;
-import com.shiftingdawn.feylon.lang.Intrinsics;
-import com.shiftingdawn.feylon.lang.Keywords;
-import com.shiftingdawn.feylon.lang.LexedProgramSource;
-import com.shiftingdawn.feylon.lang.Lexer;
-import com.shiftingdawn.feylon.lang.RawToken;
-import com.shiftingdawn.feylon.lang.RawTokenType;
-import com.shiftingdawn.feylon.lang.TokenPos;
 
 public class Compiler {
 
@@ -72,7 +66,7 @@ public class Compiler {
 									ctx.instructions.append(new InstructionSource(token, InstructionType.RETURN, ctx.instructions.size() + 1));
 									instructionSource.data = ctx.instructions.size();
 								}
-								default -> throw new AssertionError(Keywords.END + " operation refers to illegal operation " + instructionSource.type);
+								default -> throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, Keywords.END + " operation refers to illegal operation " + instructionSource.type);
 							}
 						}
 						case IF -> {
@@ -84,7 +78,7 @@ public class Compiler {
 							instructionStack.push(ctx.instructions.size());
 							final InstructionSource instructionSource = ctx.instructions.get(pointer);
 							if (instructionSource.type != InstructionType.IF) {
-								throw new AssertionError(Keywords.ELSE + " keyword refers to illegal operation " + instructionSource.type);
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, Keywords.ELSE + " keyword refers to illegal operation " + instructionSource.type);
 							}
 							ctx.instructions.append(new InstructionSource(token, InstructionType.ELSE, ctx.instructions.size()));
 							instructionSource.data = ctx.instructions.size();
@@ -101,8 +95,8 @@ public class Compiler {
 						case FUNCTION -> {
 							final int selfPointer = ctx.instructions.size();
 							final RawToken nextToken = tokenList.pop();
-							if (nextToken.type()!=RawTokenType.FUNCTION_NAME) {
-								throw new AssertionError("Expected function name, got: " + nextToken.type());
+							if (nextToken.type() != RawTokenType.FUNCTION_NAME) {
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, "Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
 							ctx.instructions.append(new InstructionSource(token, InstructionType.FUNCTION, null));
@@ -117,13 +111,13 @@ public class Compiler {
 						}
 						case IMPORT -> {
 							final RawToken nextToken = tokenList.pop();
-							if (nextToken.type()!=RawTokenType.STRING) {
-								throw new AssertionError("Expected import path, got: " + nextToken.type());
+							if (nextToken.type() != RawTokenType.STRING) {
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, "Expected import path, got: " + nextToken.type());
 							}
 							final File selfDir = new File(token.pos().file()).getParentFile();
 							final Path importPath = selfDir.toPath().resolve((String) nextToken.operand());
 							if (!Files.exists(importPath)) {
-								throw new AssertionError("Import does not exist: " + importPath);
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, "Import does not exist: " + importPath);
 							}
 							try {
 								final Collection<String> importLines = Files.readAllLines(importPath);
@@ -132,17 +126,24 @@ public class Compiler {
 								tokenList.addAll(importTokenList);
 								programSource.funcs().putAll(importedProgramSource.funcs());
 							} catch (final IOException e) {
-								throw new AssertionError("Could not load import: " + importPath, e);
+								final TokenPos pos2 = token.pos();
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, "Could not load import: " + importPath)
+										.add(add -> {
+											add.accept(pos2, e.toString());
+											for (final StackTraceElement stackTraceElement : e.getStackTrace()) {
+												add.accept(pos2, stackTraceElement.toString());
+											}
+										});
 							}
 						}
 						case CONST -> {
 							token = tokenList.pop();
-							if (token.type()!=RawTokenType.CONST_NAME) {
-								throw new AssertionError("Expected function name, got: " + token.type());
+							if (token.type() != RawTokenType.CONST_NAME) {
+								throw new CompilerException(token.pos(), CompilerErrors.INVALID_DATA, "Expected const name, got: " + token.type());
 							}
 							final String constantName = token.txt();
 							final TokenPos constLocation = token.pos();
-							final Map.Entry<Integer, DataType> constData = Prevaluator.evaluateConstant(constLocation, ctx, tokenList);
+							final Map.Entry<Integer, DataType> constData = ConstEvaluator.evaluateConstant(constLocation, ctx, tokenList);
 							ctx.constants.put(constantName, new ConstantDef(constLocation, constData.getValue(), constData.getKey()));
 						}
 						default -> throw new AssertionError("Found unimplemented keyword " + token.type());
