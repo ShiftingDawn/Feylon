@@ -8,21 +8,13 @@ import java.util.function.IntPredicate;
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.syntax.CompilerException;
 import com.shiftingdawn.feylon.syntax.DataType;
-import com.shiftingdawn.feylon.syntax.Intrinsic;
-import com.shiftingdawn.feylon.syntax.Keyword;
-import com.shiftingdawn.feylon.syntax.Token;
-import com.shiftingdawn.feylon.syntax.TokenPos;
-import com.shiftingdawn.feylon.syntax.TokenType;
 
 public final class Lexer {
 
 	public static LexedProgramSource lex(final String file, final Collection<String> lines) {
 		final OrderedList<LexedPositionalToken> tokens = Lexer.parseFileIntoTokens(file, lines);
 		final Map<String, FunctionType> functionTypes = Lexer.parseFunctions(tokens);
-		return new LexedProgramSource(
-				tokens.stream().map(Lexer::transformToken).toList(),
-				functionTypes
-		);
+		return new LexedProgramSource(Lexer.transformTokens(tokens), functionTypes);
 	}
 
 	private static OrderedList<LexedPositionalToken> parseFileIntoTokens(final String file, final Collection<String> lines) {
@@ -47,7 +39,7 @@ public final class Lexer {
 				tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.OTHER, tokenText));
 				pos = endPos + 1;
 
-				if (Keyword.FUNCTION.textValue.equals(tokenText)) {
+				if (Keywords.FUNCTION.textValue.equals(tokenText)) {
 					pos = Lexer.find(line, pos, x -> !Character.isWhitespace(x));
 					if (pos + 1 >= line.length()) {
 						throw new CompilerException(new TokenPos(file, lineNr, pos - endPos - 1), "Function is missing a name and type definition");
@@ -87,15 +79,15 @@ public final class Lexer {
 					final OrderedList<LexedPositionalToken> list = Lexer.parseLineIntoTokens(new OrderedList<>(), null, nameAndDef[1], 0);
 					boolean processingInputs = true;
 					for (final LexedPositionalToken typeTokenCandidate : list) {
-						if (typeTokenCandidate.txt().equals("->")) {
+						if (typeTokenCandidate.txt().equals(Intrinsics.ARROW.textValue)) {
 							processingInputs = false;
 							continue;
 						}
-						final OrderedList<DataType> lst = processingInputs ? inputs : outputs;
-						if (typeTokenCandidate.txt().equals("str")) {
+						final OrderedList<DataType> lst = processingInputs ? inputs:outputs;
+						if (typeTokenCandidate.txt().equals(Keywords.TYPE_STR.textValue)) {
 							lst.append(DataType.INTEGER);
 							lst.append(DataType.POINTER);
-						}else {
+						} else {
 							final DataType type = DataType.getByText(typeTokenCandidate.txt())
 									.orElseThrow(() -> new CompilerException(token.pos(), "Function has invalid type in signature: " + typeTokenCandidate.type()));
 							lst.append(type);
@@ -109,25 +101,29 @@ public final class Lexer {
 		return defs;
 	}
 
-	private static Token transformToken(final LexedPositionalToken token) {
-		return switch (token.type()) {
-			case STRING -> new Token(token.pos(), TokenType.STRING, token.txt(), token.txt().substring(1, token.txt().length() - 1));
-			case FUNCTION_DEF -> new Token(token.pos(), TokenType.UNKNOWN, token.txt(), token.txt());
-			case OTHER -> {
-				final Token[] result = new Token[1];
-				try {
-					result[0] = new Token(token.pos(), TokenType.INTEGER, token.txt(), Integer.parseInt(token.txt()));
-				} catch (final NumberFormatException ignored) {
-					Intrinsic.getByText(token.txt()).ifPresentOrElse(intrinsic -> {
-						result[0] = new Token(token.pos(), TokenType.INTRINSIC, token.txt(), intrinsic);
-					}, () -> Keyword.getByText(token.txt()).ifPresentOrElse(keyword -> {
-						result[0] = new Token(token.pos(), TokenType.KEYWORD, token.txt(), keyword);
+	private static OrderedList<RawToken> transformTokens(final OrderedList<LexedPositionalToken> tokens) {
+		final OrderedList<RawToken> result = new OrderedList<>();
+		for (final LexedPositionalToken token : tokens) {
+			switch (token.type()) {
+				case STRING -> result.append(new RawToken(token.pos(), RawTokenType.STRING, token.txt(), token.txt().substring(1, token.txt().length() - 1)));
+				case FUNCTION_DEF -> result.append(new RawToken(token.pos(), RawTokenType.FUNCTION_NAME, token.txt(), token.txt()));
+				case OTHER -> {
+					try {
+						result.append(new RawToken(token.pos(), RawTokenType.INT, token.txt(), Integer.parseInt(token.txt())));
+						continue;
+					} catch (final NumberFormatException ignored) {
+					}
+					Intrinsics.getByText(token.txt()).ifPresentOrElse(intrinsic -> {
+						result.append(new RawToken(token.pos(), RawTokenType.INTRINSIC, token.txt(), intrinsic));
+					}, () -> Keywords.getByText(token.txt()).ifPresentOrElse(keyword -> {
+						result.append(new RawToken(token.pos(), RawTokenType.KEYWORD, token.txt(), keyword));
 					}, () -> {
-						result[0] = new Token(token.pos(), TokenType.UNKNOWN, token.txt(), null);
+						result.append(new RawToken(token.pos(), RawTokenType.OTHER, token.txt(), null));
 					}));
 				}
-				yield result[0];
+				default -> throw new AssertionError("Encountered an unregistered LexedPositionalToken type: " + token.type());
 			}
-		};
+		}
+		return result;
 	}
 }

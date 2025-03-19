@@ -2,6 +2,8 @@ package com.shiftingdawn.feylon.syntax;
 
 import java.io.Serial;
 
+import com.shiftingdawn.feylon.lang.TokenPos;
+
 public class CompilerException extends AssertionError {
 
 	@Serial

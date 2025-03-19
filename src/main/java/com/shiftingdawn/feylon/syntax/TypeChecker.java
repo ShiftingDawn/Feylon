@@ -1,11 +1,13 @@
 package com.shiftingdawn.feylon.syntax;
 
-import com.shiftingdawn.feylon.OrderedList;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.lang.Intrinsics;
+import com.shiftingdawn.feylon.lang.TokenPos;
 
 public class TypeChecker {
 
@@ -83,7 +85,7 @@ public class TypeChecker {
 					if (handledLoops.containsKey(ctx.pointer)) {
 						final OrderedList<DataType> expectedTypes = new OrderedList<>(handledLoops.get(ctx.pointer).stream().map(PositionedType::type).toList());
 						final OrderedList<DataType> actualTypes = new OrderedList<>(ctx.stack.stream().map(PositionedType::type).toList());
-						if (expectedTypes.size() != actualTypes.size() || !actualTypes.containsAll(expectedTypes) || !expectedTypes.containsAll(actualTypes)) {
+						if (expectedTypes.size()!=actualTypes.size() || !actualTypes.containsAll(expectedTypes) || !expectedTypes.containsAll(actualTypes)) {
 							TypeChecker.error(instruction.pos, "Loops are not allowed to modify the stack between iterations!");
 							TypeChecker.info(instruction.pos, "Stack BEFORE loop:");
 							if (handledLoops.get(ctx.pointer).isEmpty()) {
@@ -103,8 +105,8 @@ public class TypeChecker {
 					}
 				}
 				case INTRINSIC -> {
-					assert instruction.data instanceof Intrinsic;
-					switch ((Intrinsic) instruction.data) {
+					assert instruction.data instanceof Intrinsics;
+					switch ((Intrinsics) instruction.data) {
 						case TRUE, FALSE -> {
 							ctx.stack.append(new PositionedType(DataType.BOOLEAN, instruction.pos));
 							++ctx.pointer;
@@ -190,7 +192,7 @@ public class TypeChecker {
 					++ctx.pointer;
 				}
 				case INSTRUCTION -> {
-					switch (Operations.getByText(instruction.txt).orElseThrow(AssertionError::new)) {
+					switch (Operations.getByText(instruction.txt).orElseThrow(() -> new AssertionError("Unknown operation: " + instruction.txt))) {
 						case NOOP -> {
 						}
 						case POP -> {
@@ -254,7 +256,7 @@ public class TypeChecker {
 		while (!stack.isEmpty() && !inputs.isEmpty()) {
 			final PositionedType expected = inputs.pop();
 			final PositionedType actual = stack.pop();
-			if (expected.type() != actual.type()) {
+			if (expected.type()!=actual.type()) {
 				TypeChecker.error(src.pos, "Argument %s of %s is expected to be type '%s' but received type '%s' instead.".formatted(argCount, src.txt, expected.type(), actual.type()));
 				TypeChecker.info(actual.pos(), "Argument %s was found here".formatted(argCount));
 				TypeChecker.info(expected.pos(), "Expected type is defined here");
@@ -279,7 +281,7 @@ public class TypeChecker {
 		while (!ctx.stack.isEmpty() && !ctx.outputs.isEmpty()) {
 			final PositionedType expected = ctx.outputs.pop();
 			final PositionedType actual = ctx.stack.pop();
-			if (expected.type() != actual.type()) {
+			if (expected.type()!=actual.type()) {
 				TypeChecker.info(actual.pos(), "Unexpected type %s placed on the stack.".formatted(actual.type()));
 				TypeChecker.info(expected.pos(), "Expected type %s".formatted(expected.type()));
 				throw new AssertionError();

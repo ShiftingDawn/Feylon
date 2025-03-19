@@ -1,26 +1,29 @@
 package com.shiftingdawn.feylon.syntax;
 
-import com.shiftingdawn.feylon.OrderedList;
-
 import java.util.AbstractMap;
 import java.util.Map;
 
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.lang.Keywords;
+import com.shiftingdawn.feylon.lang.RawToken;
+import com.shiftingdawn.feylon.lang.TokenPos;
+
 public class Prevaluator {
 
-	public static Map.Entry<Integer, DataType> evaluateConstant(final TokenPos pos, final CompilerContext ctx, final OrderedList<Token> tokens) {
+	public static Map.Entry<Integer, DataType> evaluateConstant(final TokenPos pos, final CompilerContext ctx, final OrderedList<RawToken> tokens) {
 		final OrderedList<Map.Entry<Integer, DataType>> stack = new OrderedList<>();
 		Outer:
 		while (!tokens.isEmpty()) {
-			final Token token = tokens.pop();
+			final RawToken token = tokens.pop();
 			switch (token.type()) {
 				case KEYWORD -> {
-					if (token.operand() == Keyword.END) {
+					if (token.operand()==Keywords.END) {
 						break Outer;
 					} else {
 						throw new CompilerException(token.pos(), "Encountered illegal keyword '%s' when evaluating constant".formatted(token.operand()));
 					}
 				}
-				case INTEGER -> {
+				case INT -> {
 					assert token.operand() instanceof Integer;
 					stack.append(new AbstractMap.SimpleEntry<>((int) token.operand(), DataType.INTEGER));
 				}

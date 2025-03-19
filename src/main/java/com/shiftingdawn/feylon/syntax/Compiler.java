@@ -8,17 +8,21 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.SequencedCollection;
 
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.Stack;
+import com.shiftingdawn.feylon.lang.Intrinsics;
+import com.shiftingdawn.feylon.lang.Keywords;
 import com.shiftingdawn.feylon.lang.LexedProgramSource;
 import com.shiftingdawn.feylon.lang.Lexer;
+import com.shiftingdawn.feylon.lang.RawToken;
+import com.shiftingdawn.feylon.lang.RawTokenType;
+import com.shiftingdawn.feylon.lang.TokenPos;
 
 public class Compiler {
 
 	private static final List<String> TOKENS_TO_REMOVE = Arrays.asList(
-			Intrinsic.CAST_INTEGER.textValue, Intrinsic.CAST_BOOLEAN.textValue, Intrinsic.CAST_POINTER.textValue
+			Intrinsics.CAST_INTEGER.textValue, Intrinsics.CAST_BOOLEAN.textValue, Intrinsics.CAST_POINTER.textValue
 	);
 
 	public static Program compile(final String file, final Collection<String> lines, final int shutdownStackSize) {
@@ -41,17 +45,17 @@ public class Compiler {
 	}
 
 	private static void makeSourceStack(final CompilerContext ctx, final LexedProgramSource programSource) {
-		final OrderedList<Token> tokenList = new OrderedList<>(programSource.tokens()).reverse();
+		final OrderedList<RawToken> tokenList = new OrderedList<>(programSource.tokens()).reverse();
 		final Stack instructionStack = new Stack();
 
 		while (!tokenList.isEmpty()) {
-			Token token = tokenList.pop();
+			RawToken token = tokenList.pop();
 			switch (token.type()) {
-				case INTEGER -> ctx.instructions.append(new InstructionSource(token, InstructionType.PUSH_INT, token.operand()));
+				case INT -> ctx.instructions.append(new InstructionSource(token, InstructionType.PUSH_INT, token.operand()));
 				case STRING -> ctx.instructions.append(new InstructionSource(token, InstructionType.PUSH_STRING, token.operand()));
 				case INTRINSIC -> ctx.instructions.append(new InstructionSource(token, InstructionType.INTRINSIC, token.operand()));
 				case KEYWORD -> {
-					switch ((Keyword) token.operand()) {
+					switch ((Keywords) token.operand()) {
 						case END -> {
 							final int pointer = instructionStack.pop();
 							final InstructionSource instructionSource = ctx.instructions.get(pointer);
@@ -68,7 +72,7 @@ public class Compiler {
 									ctx.instructions.append(new InstructionSource(token, InstructionType.RETURN, ctx.instructions.size() + 1));
 									instructionSource.data = ctx.instructions.size();
 								}
-								default -> throw new AssertionError(Keyword.END + " operation refers to illegal operation " + instructionSource.type);
+								default -> throw new AssertionError(Keywords.END + " operation refers to illegal operation " + instructionSource.type);
 							}
 						}
 						case IF -> {
@@ -80,7 +84,7 @@ public class Compiler {
 							instructionStack.push(ctx.instructions.size());
 							final InstructionSource instructionSource = ctx.instructions.get(pointer);
 							if (instructionSource.type != InstructionType.IF) {
-								throw new AssertionError(Keyword.ELSE + " keyword refers to illegal operation " + instructionSource.type);
+								throw new AssertionError(Keywords.ELSE + " keyword refers to illegal operation " + instructionSource.type);
 							}
 							ctx.instructions.append(new InstructionSource(token, InstructionType.ELSE, ctx.instructions.size()));
 							instructionSource.data = ctx.instructions.size();
@@ -96,8 +100,8 @@ public class Compiler {
 						}
 						case FUNCTION -> {
 							final int selfPointer = ctx.instructions.size();
-							final Token nextToken = tokenList.pop();
-							if (nextToken.type() != TokenType.UNKNOWN) {
+							final RawToken nextToken = tokenList.pop();
+							if (nextToken.type()!=RawTokenType.FUNCTION_NAME) {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
@@ -112,8 +116,8 @@ public class Compiler {
 							ctx.functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputs, outputs));
 						}
 						case IMPORT -> {
-							final Token nextToken = tokenList.pop();
-							if (nextToken.type() != TokenType.STRING) {
+							final RawToken nextToken = tokenList.pop();
+							if (nextToken.type()!=RawTokenType.STRING) {
 								throw new AssertionError("Expected import path, got: " + nextToken.type());
 							}
 							final File selfDir = new File(token.pos().file()).getParentFile();
@@ -123,16 +127,17 @@ public class Compiler {
 							}
 							try {
 								final Collection<String> importLines = Files.readAllLines(importPath);
-								final SequencedCollection<Token> importStack = Parser.parseProgram(importPath.toString(), importLines);
-								final OrderedList<Token> importTokenList = new OrderedList<>(importStack).reverse();
+								final LexedProgramSource importedProgramSource = Lexer.lex(importPath.toString(), importLines);
+								final OrderedList<RawToken> importTokenList = new OrderedList<>(importedProgramSource.tokens()).reverse();
 								tokenList.addAll(importTokenList);
+								programSource.funcs().putAll(importedProgramSource.funcs());
 							} catch (final IOException e) {
 								throw new AssertionError("Could not load import: " + importPath, e);
 							}
 						}
 						case CONST -> {
 							token = tokenList.pop();
-							if (token.type() != TokenType.UNKNOWN) {
+							if (token.type()!=RawTokenType.CONST_NAME) {
 								throw new AssertionError("Expected function name, got: " + token.type());
 							}
 							final String constantName = token.txt();
@@ -143,7 +148,7 @@ public class Compiler {
 						default -> throw new AssertionError("Found unimplemented keyword " + token.type());
 					}
 				}
-				case UNKNOWN -> {
+				case OTHER -> {
 					if (ctx.functions.containsKey(token.txt())) {
 						ctx.instructions.append(new InstructionSource(token, InstructionType.CALL, token.txt()));
 					} else if (ctx.constants.containsKey(token.txt())) {

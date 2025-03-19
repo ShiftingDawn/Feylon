@@ -1,4 +1,4 @@
-package com.shiftingdawn.feylon.syntax;
+package com.shiftingdawn.feylon.lang;
 
 public record TokenPos(String file, int lineNr, int col) {
 
