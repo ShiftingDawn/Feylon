@@ -1,4 +1,4 @@
-//1 2 3 4 5 6 7
+//1 2 3 4 5 6 7 8 9 10 11
 
 true if
     1 dump
@@ -20,3 +20,23 @@ end
     dup dump
     1 +
 end pop
+
+function test()
+    8 dump
+end
+test
+
+function test2(int)
+    dump
+end
+9 test2
+
+function test3(-> int)
+    10
+end
+test3 dump
+
+function test4(int -> int)
+    1 +
+end
+10 test4 dump
