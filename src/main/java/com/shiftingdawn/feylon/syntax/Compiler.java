@@ -1,13 +1,17 @@
 package com.shiftingdawn.feylon.syntax;
 
-import com.shiftingdawn.feylon.OrderedList;
-import com.shiftingdawn.feylon.Stack;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.SequencedCollection;
+
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.Stack;
 
 public class Compiler {
 
@@ -65,7 +69,7 @@ public class Compiler {
 									ctx.instructions.append(new InstructionSource(token, InstructionType.RETURN, ctx.instructions.size() + 1));
 									instructionSource.data = ctx.instructions.size();
 								}
-								default -> throw new AssertionError(OpType.END + " operation refers to illegal operation " + instructionSource.type);
+								default -> throw new AssertionError(Keyword.END + " operation refers to illegal operation " + instructionSource.type);
 							}
 						}
 						case IF -> {
