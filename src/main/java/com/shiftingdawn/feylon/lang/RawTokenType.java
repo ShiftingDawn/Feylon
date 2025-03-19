@@ -10,6 +10,7 @@ public enum RawTokenType {
 
 	FUNCTION_NAME,
 	CONST_NAME,
+	CONST_REF,
 
 	OTHER;
 }

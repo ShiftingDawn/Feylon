@@ -45,6 +45,14 @@ public class ConstEvaluator {
 								"Encountered illegal intrinsic '%s' when evaluating constant".formatted(token.operand()));
 					}
 				}
+				case CONST_REF -> {
+					final ConstantDef constantDef = ctx.constants.get(token.txt());
+					if (constantDef == null) {
+						throw new CompilerException(token.pos(), CompilerErrors.ILLEGAL_CONSTANT_VALUE,
+								"Encountered constant reference '%s' before it was defined when evaluating constant".formatted(token.txt()));
+					}
+					stack.append(new AbstractMap.SimpleEntry<>(constantDef.value(), constantDef.dataType()));
+				}
 				default -> throw new CompilerException(token.pos(), CompilerErrors.ILLEGAL_CONSTANT_VALUE,
 						"Encountered illegal '%s' token '%s' when evaluating constant".formatted(token.type(), token.txt()));
 			}

@@ -1,4 +1,4 @@
-//1 2 3 4
+//1 2 3 4 5
 
 const TEST 1 end
 TEST dump
@@ -11,3 +11,7 @@ TEST3 dump
 
 const TEST4 2 2 * end
 TEST4 dump
+
+const TEST5_2 2 end
+const TEST5_1 3 TEST5_2 + end
+TEST5_1 dump

@@ -152,18 +152,19 @@ public class Compiler {
 				case OTHER -> {
 					if (ctx.functions.containsKey(token.txt())) {
 						ctx.instructions.append(new InstructionSource(token, InstructionType.CALL, token.txt()));
-					} else if (ctx.constants.containsKey(token.txt())) {
-						final ConstantDef constDef = ctx.constants.get(token.txt());
-						ctx.instructions.append(switch (constDef.dataType()) {
-							case INTEGER -> new InstructionSource(token, InstructionType.PUSH_INT, constDef.value());
-							case BOOLEAN -> throw new AssertionError("Not implemented yet");
-							case POINTER -> throw new AssertionError("Not implemented yet");
-						});
 					} else {
 						ctx.instructions.append(new InstructionSource(token, InstructionType.INSTRUCTION, token.txt()));
 					}
 				}
-				default -> throw new AssertionError("Encountered unhandled AbstractToken: " + token.getClass().getName());
+				case CONST_REF -> {
+					final ConstantDef constDef = ctx.constants.get(token.txt());
+					ctx.instructions.append(switch (constDef.dataType()) {
+						case INTEGER -> new InstructionSource(token, InstructionType.PUSH_INT, constDef.value());
+						case BOOLEAN -> throw new AssertionError("Not implemented yet");
+						case POINTER -> throw new AssertionError("Not implemented yet");
+					});
+				}
+				default -> throw new AssertionError("Encountered unhandled RawToken type: " + token.type());
 			}
 		}
 	}

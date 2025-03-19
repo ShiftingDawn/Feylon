@@ -30,8 +30,8 @@ public final class Lexer {
 	private static OrderedList<LexedPositionalToken> parseLineIntoTokens(final OrderedList<LexedPositionalToken> tokens, final String file, final String line, final int lineNr) {
 		int pos = Lexer.find(line, 0, x -> !Character.isWhitespace(x));
 		while (pos < line.length()) {
-			if (line.charAt(pos)=='"') {
-				final int endPos = Lexer.find(line, pos + 1, x -> x=='"');
+			if (line.charAt(pos) == '"') {
+				final int endPos = Lexer.find(line, pos + 1, x -> x == '"');
 				tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.STRING, line.substring(pos, endPos + 1)));
 				pos = Lexer.find(line, endPos + 2, x -> !Character.isWhitespace(x));
 			} else {
@@ -48,8 +48,8 @@ public final class Lexer {
 					if (pos + 1 >= line.length()) {
 						throw new CompilerException(new TokenPos(file, lineNr, pos - endPos - 1), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function is missing a name and type definition");
 					}
-					endPos = Lexer.find(line, pos, x -> x==')');
-					if (endPos==line.length()) {
+					endPos = Lexer.find(line, pos, x -> x == ')');
+					if (endPos == line.length()) {
 						throw new CompilerException(new TokenPos(file, lineNr, pos), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function is missing a type definition");
 					}
 					endPos += 1;
@@ -83,14 +83,14 @@ public final class Lexer {
 		final Map<String, FunctionType> defs = new HashMap<>();
 		for (int i = 0; i < tokens.size(); ++i) {
 			final LexedPositionalToken token = tokens.get(i);
-			if (token.type()==LexedTokenType.FUNCTION_DEF) {
+			if (token.type() == LexedTokenType.FUNCTION_DEF) {
 				final String[] nameAndDef = token.txt().substring(0, token.txt().length() - 1).split("\\(");
 				if (nameAndDef.length > 2) {
 					throw new CompilerException(token.pos(), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function has invalid signature");
 				}
 				final OrderedList<DataType> inputs = new OrderedList<>();
 				final OrderedList<DataType> outputs = new OrderedList<>();
-				if (nameAndDef.length==2) {
+				if (nameAndDef.length == 2) {
 					final OrderedList<LexedPositionalToken> list = Lexer.parseLineIntoTokens(new OrderedList<>(), null, nameAndDef[1], 0);
 					boolean processingInputs = true;
 					for (final LexedPositionalToken typeTokenCandidate : list) {
@@ -98,7 +98,7 @@ public final class Lexer {
 							processingInputs = false;
 							continue;
 						}
-						final OrderedList<DataType> lst = processingInputs ? inputs:outputs;
+						final OrderedList<DataType> lst = processingInputs ? inputs : outputs;
 						if (typeTokenCandidate.txt().equals(Keywords.TYPE_STR.textValue)) {
 							lst.append(DataType.INTEGER);
 							lst.append(DataType.POINTER);
@@ -134,7 +134,11 @@ public final class Lexer {
 					}, () -> Keywords.getByText(token.txt()).ifPresentOrElse(keyword -> {
 						result.append(new RawToken(token.pos(), RawTokenType.KEYWORD, token.txt(), keyword));
 					}, () -> {
-						result.append(new RawToken(token.pos(), RawTokenType.OTHER, token.txt(), null));
+						if (tokens.stream().anyMatch(test -> test.txt().equals(token.txt()) && test.type() == LexedTokenType.CONST_NAME)) {
+							result.append(new RawToken(token.pos(), RawTokenType.CONST_REF, token.txt(), token.txt()));
+						} else {
+							result.append(new RawToken(token.pos(), RawTokenType.OTHER, token.txt(), null));
+						}
 					}));
 				}
 				default -> throw new AssertionError("Encountered an unregistered LexedPositionalToken type: " + token.type());
