@@ -14,7 +14,7 @@ public enum Keyword {
 	DO("do"),
 	CONST("const");
 
-	private final String textValue;
+	public final String textValue;
 
 	Keyword(final String textValue) {
 		this.textValue = textValue;

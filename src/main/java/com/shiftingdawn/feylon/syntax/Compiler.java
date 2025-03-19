@@ -12,6 +12,8 @@ import java.util.SequencedCollection;
 
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.Stack;
+import com.shiftingdawn.feylon.lang.LexedProgramSource;
+import com.shiftingdawn.feylon.lang.Lexer;
 
 public class Compiler {
 
@@ -20,10 +22,10 @@ public class Compiler {
 	);
 
 	public static Program compile(final String file, final Collection<String> lines, final int shutdownStackSize) {
-		final SequencedCollection<Token> parsedProgram = Parser.parseProgram(file, lines);
+		final LexedProgramSource programSource = Lexer.lex(file, lines);
 
 		final CompilerContext ctx = new CompilerContext();
-		Compiler.makeSourceStack(ctx, parsedProgram);
+		Compiler.makeSourceStack(ctx, programSource);
 
 		TypeChecker.check(ctx, shutdownStackSize);
 		for (int i = 0; i < ctx.instructions.size(); ++i) {
@@ -38,11 +40,8 @@ public class Compiler {
 		return Compiler.compile(file, lines, 0);
 	}
 
-	public record SourceStack(InstructionSource[] sources, Map<String, FunctionDef> functions) {
-	}
-
-	private static void makeSourceStack(final CompilerContext ctx, final SequencedCollection<Token> parsedProgram) {
-		final OrderedList<Token> tokenList = new OrderedList<>(parsedProgram).reverse();
+	private static void makeSourceStack(final CompilerContext ctx, final LexedProgramSource programSource) {
+		final OrderedList<Token> tokenList = new OrderedList<>(programSource.tokens()).reverse();
 		final Stack instructionStack = new Stack();
 
 		while (!tokenList.isEmpty()) {
@@ -97,49 +96,20 @@ public class Compiler {
 						}
 						case FUNCTION -> {
 							final int selfPointer = ctx.instructions.size();
-							Token nextToken = tokenList.pop();
+							final Token nextToken = tokenList.pop();
 							if (nextToken.type() != TokenType.UNKNOWN) {
 								throw new AssertionError("Expected function name, got: " + nextToken.type());
 							}
 							instructionStack.push(selfPointer);
 							ctx.instructions.append(new InstructionSource(token, InstructionType.FUNCTION, null));
 							final String funcName = nextToken.txt();
-							final OrderedList<PositionedType> inputTypeList = new OrderedList<>();
-							while (!tokenList.isEmpty()) {
-								nextToken = tokenList.pop();
-								if (nextToken.type() != TokenType.UNKNOWN) {
-									throw new AssertionError("Expected function argument type, got: " + nextToken.type());
-								}
-								if (nextToken.txt().equals("->")) {
-									break;
-								}
-								final Token finalNextToken = nextToken;
-								final DataType type = DataType.getByText(nextToken.txt())
-										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
-								inputTypeList.append(new PositionedType(type, nextToken.pos()));
-							}
-
-							if (tokenList.isEmpty()) {
-								throw new AssertionError("Expected function return types, but there are no more tokens.");
-							}
-							final OrderedList<PositionedType> outputTypeList = new OrderedList<>();
-							while (!tokenList.isEmpty()) {
-								nextToken = tokenList.pop();
-								if (nextToken.type() != TokenType.UNKNOWN) {
-									throw new AssertionError("Expected function argument type, got: " + nextToken.type());
-								}
-								if (nextToken.txt().equals("->")) {
-									break;
-								}
-								final Token finalNextToken = nextToken;
-								final DataType type = DataType.getByText(nextToken.txt())
-										.orElseThrow(() -> new AssertionError("Expected function argument type, got: " + finalNextToken.txt()));
-								outputTypeList.append(new PositionedType(type, nextToken.pos()));
-							}
-							if (tokenList.isEmpty()) {
-								throw new AssertionError("Expected function body, but there are no more tokens.");
-							}
-							ctx.functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputTypeList.toArray(PositionedType[]::new), outputTypeList.toArray(PositionedType[]::new)));
+							final PositionedType[] inputs = Arrays.stream(programSource.funcs().get(funcName).inputs())
+									.map(type -> new PositionedType(type, nextToken.pos()))
+									.toArray(PositionedType[]::new);
+							final PositionedType[] outputs = Arrays.stream(programSource.funcs().get(funcName).outputs())
+									.map(type -> new PositionedType(type, nextToken.pos()))
+									.toArray(PositionedType[]::new);
+							ctx.functions.put(funcName, new FunctionDef(token.pos(), selfPointer + 1, inputs, outputs));
 						}
 						case IMPORT -> {
 							final Token nextToken = tokenList.pop();

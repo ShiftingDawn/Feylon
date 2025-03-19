@@ -101,7 +101,7 @@ Code can be reused by wrapping it in a function.
 **Get the bigger of two numbers:**
 
 ```forth
-function max
+function max(int int -> int)
   over over < if swap end
   pop
 end
@@ -112,7 +112,7 @@ end
 **Print a string to stderr:**
 
 ```forth
-function printE
+function printE(str)
   2 1 syscall3
 end
 

@@ -1,14 +1,16 @@
 package com.shiftingdawn.feylon.syntax;
 
-import com.shiftingdawn.feylon.OrderedList;
-
 import java.util.Collection;
 import java.util.SequencedCollection;
 import java.util.function.IntPredicate;
 
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.lang.Lexer;
+
 public class Parser {
 
 	public static SequencedCollection<Token> parseProgram(final String file, final Collection<String> lines) {
+		Lexer.lex(file, lines);
 		final OrderedList<Token> result = new OrderedList<>();
 		int lineNr = 0;
 		for (final String line : lines) {
@@ -22,8 +24,8 @@ public class Parser {
 		int pos = Parser.find(line, 0, x -> !Character.isWhitespace(x));
 		while (pos < line.length()) {
 			final TokenPos tokenPos = new TokenPos(file, lineNr, pos);
-			if (line.charAt(pos) == '"') {
-				final int endPos = Parser.find(line, pos + 1, x -> x == '"');
+			if (line.charAt(pos)=='"') {
+				final int endPos = Parser.find(line, pos + 1, x -> x=='"');
 				final String fullToken = line.substring(pos, endPos + 1);
 				result.append(new Token(tokenPos, TokenType.STRING, fullToken, fullToken.substring(1, fullToken.length() - 1)));
 				pos = Parser.find(line, endPos + 2, x -> !Character.isWhitespace(x));
