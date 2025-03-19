@@ -5,6 +5,8 @@ import com.shiftingdawn.feylon.Simulator;
 import com.shiftingdawn.feylon.Stack;
 import com.shiftingdawn.feylon.StackUnderflowError;
 import com.shiftingdawn.feylon.syntax.Compiler;
+import com.shiftingdawn.feylon.syntax.CompilerErrors;
+import com.shiftingdawn.feylon.syntax.CompilerException;
 import com.shiftingdawn.feylon.syntax.Program;
 import org.junit.jupiter.api.Assertions;
 
@@ -38,5 +40,13 @@ public abstract class AbstractTestHost {
 
 	public void assertStackEmpty() {
 		Assertions.assertThrows(StackUnderflowError.class, this.dataStack::pop);
+	}
+
+	public void assertExceptionWithCode(final CompilerErrors error, final String program) {
+		final CompilerException ex = Assertions.assertThrows(CompilerException.class, () -> this.run(program, 0));
+		if (!error.equals(ex.code)) {
+			ex.printStackTrace();
+			Assertions.assertEquals(error, ex.code);
+		}
 	}
 }

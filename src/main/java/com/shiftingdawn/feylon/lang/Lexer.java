@@ -1,13 +1,14 @@
 package com.shiftingdawn.feylon.lang;
 
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.syntax.CompilerErrors;
+import com.shiftingdawn.feylon.syntax.CompilerException;
+import com.shiftingdawn.feylon.syntax.DataType;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.IntPredicate;
-
-import com.shiftingdawn.feylon.OrderedList;
-import com.shiftingdawn.feylon.syntax.CompilerException;
-import com.shiftingdawn.feylon.syntax.DataType;
 
 public final class Lexer {
 
@@ -42,11 +43,11 @@ public final class Lexer {
 				if (Keywords.FUNCTION.textValue.equals(tokenText)) {
 					pos = Lexer.find(line, pos, x -> !Character.isWhitespace(x));
 					if (pos + 1 >= line.length()) {
-						throw new CompilerException(new TokenPos(file, lineNr, pos - endPos - 1), "Function is missing a name and type definition");
+						throw new CompilerException(new TokenPos(file, lineNr, pos - endPos - 1), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function is missing a name and type definition");
 					}
 					endPos = Lexer.find(line, pos, x -> x==')');
 					if (endPos==line.length()) {
-						throw new CompilerException(new TokenPos(file, lineNr, pos), "Function is missing a type definition");
+						throw new CompilerException(new TokenPos(file, lineNr, pos), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function is missing a type definition");
 					}
 					endPos += 1;
 					tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.FUNCTION_DEF, line.substring(pos, endPos)));
@@ -71,7 +72,7 @@ public final class Lexer {
 			if (token.type()==LexedTokenType.FUNCTION_DEF) {
 				final String[] nameAndDef = token.txt().substring(0, token.txt().length() - 1).split("\\(");
 				if (nameAndDef.length > 2) {
-					throw new CompilerException(token.pos(), "Function has invalid signature");
+					throw new CompilerException(token.pos(), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function has invalid signature");
 				}
 				final OrderedList<DataType> inputs = new OrderedList<>();
 				final OrderedList<DataType> outputs = new OrderedList<>();
@@ -89,7 +90,7 @@ public final class Lexer {
 							lst.append(DataType.POINTER);
 						} else {
 							final DataType type = DataType.getByText(typeTokenCandidate.txt())
-									.orElseThrow(() -> new CompilerException(token.pos(), "Function has invalid type in signature: " + typeTokenCandidate.type()));
+									.orElseThrow(() -> new CompilerException(token.pos(), CompilerErrors.INVALID_FUNCTION_SIGNATURE, typeTokenCandidate.type().toString()));
 							lst.append(type);
 						}
 					}

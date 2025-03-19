@@ -1,13 +1,13 @@
 package com.shiftingdawn.feylon.syntax;
 
+import com.shiftingdawn.feylon.OrderedList;
+import com.shiftingdawn.feylon.lang.Intrinsics;
+import com.shiftingdawn.feylon.lang.Keywords;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import com.shiftingdawn.feylon.OrderedList;
-import com.shiftingdawn.feylon.lang.Intrinsics;
-import com.shiftingdawn.feylon.lang.TokenPos;
 
 public class TypeChecker {
 
@@ -69,8 +69,10 @@ public class TypeChecker {
 				case IF -> {
 					TypeChecker.checkSignature(instruction, ctx, new Signature(List.of(new PositionedType(DataType.BOOLEAN, instruction.pos)), List.of()));
 					++ctx.pointer;
-					assert instruction.data instanceof Integer;
-					contexts.append(new Context(new OrderedList<>(ctx.stack), (int) instruction.data, new OrderedList<>()));
+					if (!(instruction.data instanceof final Integer jumpPointer)) {
+						throw new CompilerException(instruction.pos, CompilerErrors.UNCLOSED_STATEMENT, "Missing '%s' statement".formatted(Keywords.END.textValue));
+					}
+					contexts.append(new Context(new OrderedList<>(ctx.stack), jumpPointer, new OrderedList<>()));
 				}
 				case ELSE -> {
 					assert instruction.data instanceof Integer;
@@ -85,17 +87,18 @@ public class TypeChecker {
 					if (handledLoops.containsKey(ctx.pointer)) {
 						final OrderedList<DataType> expectedTypes = new OrderedList<>(handledLoops.get(ctx.pointer).stream().map(PositionedType::type).toList());
 						final OrderedList<DataType> actualTypes = new OrderedList<>(ctx.stack.stream().map(PositionedType::type).toList());
-						if (expectedTypes.size()!=actualTypes.size() || !actualTypes.containsAll(expectedTypes) || !expectedTypes.containsAll(actualTypes)) {
-							TypeChecker.error(instruction.pos, "Loops are not allowed to modify the stack between iterations!");
-							TypeChecker.info(instruction.pos, "Stack BEFORE loop:");
-							if (handledLoops.get(ctx.pointer).isEmpty()) {
-								TypeChecker.info(instruction.pos, "<empty>");
-							} else {
-								handledLoops.get(ctx.pointer).forEach(elem -> {
-									TypeChecker.info(elem.pos(), elem.type().toString());
-								});
-							}
-							throw new AssertionError();
+						if (expectedTypes.size() != actualTypes.size() || !actualTypes.containsAll(expectedTypes) || !expectedTypes.containsAll(actualTypes)) {
+							throw new CompilerException(instruction.pos, CompilerErrors.ILLEGAL_FRAME_MODIFICATION, "Loops are not allowed to modify the stack between iterations!")
+									.add(instruction.pos, "Stack BEFORE loop:")
+									.add(add -> {
+										if (handledLoops.get(ctx.pointer).isEmpty()) {
+											add.accept(instruction.pos, "<empty>");
+										} else {
+											handledLoops.get(ctx.pointer).forEach(elem -> {
+												add.accept(elem.pos(), elem.type().toString());
+											});
+										}
+									});
 						}
 						contexts.pop();
 					} else {
@@ -109,7 +112,6 @@ public class TypeChecker {
 					switch ((Intrinsics) instruction.data) {
 						case TRUE, FALSE -> {
 							ctx.stack.append(new PositionedType(DataType.BOOLEAN, instruction.pos));
-							++ctx.pointer;
 						}
 						case ADD -> TypeChecker.checkSignature(instruction, ctx, new Signature(
 								List.of(new PositionedType(DataType.INTEGER, instruction.pos), new PositionedType(DataType.INTEGER, instruction.pos)),
@@ -240,8 +242,7 @@ public class TypeChecker {
 	private static PositionedType[] checkArity(final Context ctx, final InstructionSource src, final int count) {
 		final PositionedType[] result = new PositionedType[count];
 		if (ctx.stack.size() < count) {
-			TypeChecker.error(src.pos, "Not enough arguments were provided for '%s'. Expected %s but got %s".formatted(src.txt, count, ctx.stack.size()));
-			throw new AssertionError();
+			throw new CompilerException(src.pos, CompilerErrors.MISSING_ARGUMENTS, "Not enough arguments were provided for '%s'. Expected %s but got %s".formatted(src.txt, count, ctx.stack.size()));
 		}
 		for (int i = 0; i < count; ++i) {
 			result[i] = ctx.stack.get(ctx.stack.size() - 1 - i);
@@ -256,22 +257,22 @@ public class TypeChecker {
 		while (!stack.isEmpty() && !inputs.isEmpty()) {
 			final PositionedType expected = inputs.pop();
 			final PositionedType actual = stack.pop();
-			if (expected.type()!=actual.type()) {
-				TypeChecker.error(src.pos, "Argument %s of %s is expected to be type '%s' but received type '%s' instead.".formatted(argCount, src.txt, expected.type(), actual.type()));
-				TypeChecker.info(actual.pos(), "Argument %s was found here".formatted(argCount));
-				TypeChecker.info(expected.pos(), "Expected type is defined here");
-				throw new AssertionError();
+			if (expected.type() != actual.type()) {
+				throw new CompilerException(src.pos, CompilerErrors.INVALID_DATA, "Argument %s of %s is expected to be type '%s' but received type '%s' instead.".formatted(argCount, src.txt, expected.type(), actual.type()))
+						.add(actual.pos(), "Argument %s was found here".formatted(argCount))
+						.add(expected.pos(), "Expected type is defined here");
 			}
 			++argCount;
 		}
 		if (stack.size() < inputs.size()) {
-			TypeChecker.error(src.pos, "Not enough arguments were provided for '%s' '%s'. Expected %s but got %s".formatted(src.type, src.txt, signature.inputs().size(), argCount));
-			TypeChecker.info(src.pos, "Missing arguments:");
-			while (!inputs.isEmpty()) {
-				final PositionedType item = inputs.pop();
-				TypeChecker.info(item.pos(), item.type().toString());
-			}
-			throw new AssertionError();
+			throw new CompilerException(src.pos, CompilerErrors.MISSING_ARGUMENTS, "Not enough arguments were provided for '%s' '%s'.".formatted(src.type, src.txt))
+					.add(src.pos, "Missing arguments:")
+					.add(add -> {
+						while (!inputs.isEmpty()) {
+							final PositionedType item = inputs.pop();
+							add.accept(item.pos(), item.type().toString());
+						}
+					});
 		}
 		signature.outputs().forEach(stack::append);
 		ctx.stack = stack;
@@ -281,38 +282,27 @@ public class TypeChecker {
 		while (!ctx.stack.isEmpty() && !ctx.outputs.isEmpty()) {
 			final PositionedType expected = ctx.outputs.pop();
 			final PositionedType actual = ctx.stack.pop();
-			if (expected.type()!=actual.type()) {
-				TypeChecker.info(actual.pos(), "Unexpected type %s placed on the stack.".formatted(actual.type()));
-				TypeChecker.info(expected.pos(), "Expected type %s".formatted(expected.type()));
-				throw new AssertionError();
+			if (expected.type() != actual.type()) {
+				throw new CompilerException(actual.pos(), CompilerErrors.INVALID_DATA, "Unexpected type '%s' placed on the stack.".formatted(actual.type()))
+						.add(expected.pos(), "Expected type: '%s'".formatted(expected.type()));
 			}
 		}
 		if (ctx.stack.size() - allowedOverflow > ctx.outputs.size()) {
-			TypeChecker.error(ctx.stack.getLast().pos(), "Found unhandled data on the stack:");
-			while (!ctx.stack.isEmpty()) {
-				final PositionedType item = ctx.stack.pop();
-				TypeChecker.info(item.pos(), "type '%s'".formatted(item.type()));
-			}
-			throw new AssertionError();
+			throw new CompilerException(ctx.stack.getLast().pos(), CompilerErrors.UNHANDLED_DATA, "Found unhandled data on the stack:")
+					.add(add -> {
+						while (!ctx.stack.isEmpty()) {
+							final PositionedType item = ctx.stack.pop();
+							add.accept(item.pos(), "type '%s'".formatted(item.type()));
+						}
+					});
 		} else if (ctx.stack.size() < ctx.outputs.size()) {
-			TypeChecker.error(ctx.outputs.getLast().pos(), "Missing data on the stack. Expected:");
-			while (!ctx.outputs.isEmpty()) {
-				final PositionedType item = ctx.outputs.pop();
-				TypeChecker.info(item.pos(), "type '%s'".formatted(item.type()));
-			}
-			throw new AssertionError();
+			throw new CompilerException(ctx.outputs.getLast().pos(), CompilerErrors.MISSING_DATA, "Missing data on the stack. Expected:")
+					.add(add -> {
+						while (!ctx.outputs.isEmpty()) {
+							final PositionedType item = ctx.stack.pop();
+							add.accept(item.pos(), "type '%s'".formatted(item.type()));
+						}
+					});
 		}
-	}
-
-	private static void info(final TokenPos pos, final String msg) {
-		TypeChecker.msg(pos, "INFO", msg);
-	}
-
-	private static void error(final TokenPos pos, final String msg) {
-		TypeChecker.msg(pos, "ERROR", msg);
-	}
-
-	private static void msg(final TokenPos pos, final String level, final String msg) {
-		System.err.printf("%s: %s: %s%n", pos, level, msg);
 	}
 }

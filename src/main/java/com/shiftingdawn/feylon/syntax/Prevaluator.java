@@ -1,12 +1,12 @@
 package com.shiftingdawn.feylon.syntax;
 
-import java.util.AbstractMap;
-import java.util.Map;
-
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.lang.Keywords;
 import com.shiftingdawn.feylon.lang.RawToken;
 import com.shiftingdawn.feylon.lang.TokenPos;
+
+import java.util.AbstractMap;
+import java.util.Map;
 
 public class Prevaluator {
 
@@ -20,18 +20,19 @@ public class Prevaluator {
 					if (token.operand()==Keywords.END) {
 						break Outer;
 					} else {
-						throw new CompilerException(token.pos(), "Encountered illegal keyword '%s' when evaluating constant".formatted(token.operand()));
+						throw new CompilerException(token.pos(), CompilerErrors.ILLEGAL_CONSTANT_VALUE, "Encountered illegal keyword '%s' when evaluating constant".formatted(token.operand()));
 					}
 				}
 				case INT -> {
 					assert token.operand() instanceof Integer;
 					stack.append(new AbstractMap.SimpleEntry<>((int) token.operand(), DataType.INTEGER));
 				}
-				default -> throw new CompilerException(token.pos(), "Encountered illegal '%s' token '%s' when evaluating constant".formatted(token.type(), token.txt()));
+				default ->
+						throw new CompilerException(token.pos(), CompilerErrors.ILLEGAL_CONSTANT_VALUE, "Encountered illegal '%s' token '%s' when evaluating constant".formatted(token.type(), token.txt()));
 			}
 		}
 		if (stack.size() != 1) {
-			throw new CompilerException(pos, "The value of a constant should evaluate to a single number!");
+			throw new CompilerException(pos, CompilerErrors.ILLEGAL_CONSTANT_VALUE, "The value of a constant should evaluate to a single number!");
 		}
 		return stack.pop();
 	}
