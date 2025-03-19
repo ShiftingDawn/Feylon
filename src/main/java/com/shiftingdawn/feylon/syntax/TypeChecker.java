@@ -231,6 +231,10 @@ public class TypeChecker {
 							final var dp = TypeChecker.checkArity(ctx, instruction, 2);
 							TypeChecker.checkSignature(instruction, ctx, new Signature(List.of(new PositionedType(DataType.POINTER, dp[1].pos()), dp[0]), List.of()));
 						}
+						case DUMP -> {
+							final var a = TypeChecker.checkArity(ctx, instruction, 1)[0];
+							TypeChecker.checkSignature(instruction, ctx, new Signature(List.of(a), List.of()));
+						}
 						default -> throw new AssertionError("Encountered unknown operation: " + instruction.data);
 					}
 					++ctx.pointer;
