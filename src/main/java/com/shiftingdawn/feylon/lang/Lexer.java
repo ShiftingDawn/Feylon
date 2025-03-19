@@ -37,6 +37,9 @@ public final class Lexer {
 			} else {
 				int endPos = Lexer.find(line, pos, Character::isWhitespace);
 				final String tokenText = line.substring(pos, endPos);
+				if (tokenText.startsWith("//")) {
+					return tokens;
+				}
 				tokens.append(new LexedPositionalToken(new TokenPos(file, lineNr, pos), LexedTokenType.OTHER, tokenText));
 				pos = endPos + 1;
 
