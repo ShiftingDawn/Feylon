@@ -216,10 +216,34 @@ final class TypeChecker {
 								List.of(new TypedPos(linkedToken.pos, DataType.POINTER)),
 								List.of(new TypedPos(linkedToken.pos, DataType.INT))
 						));
-						case SYSCALL_0 -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.POINTER)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
+						case SYSCALL_0 -> {
+							final var n = TypeChecker.checkArity(ctx, linkedToken, 1);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(n), List.of()));
+						}
+						case SYSCALL_1 -> {
+							final var an = TypeChecker.checkArity(ctx, linkedToken, 2);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(an), List.of()));
+						}
+						case SYSCALL_2 -> {
+							final var abn = TypeChecker.checkArity(ctx, linkedToken, 3);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abn), List.of()));
+						}
+						case SYSCALL_3 -> {
+							final var abcn = TypeChecker.checkArity(ctx, linkedToken, 4);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abcn), List.of()));
+						}
+						case SYSCALL_4 -> {
+							final var abcdn = TypeChecker.checkArity(ctx, linkedToken, 5);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abcdn), List.of()));
+						}
+						case SYSCALL_5 -> {
+							final var abcden = TypeChecker.checkArity(ctx, linkedToken, 6);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abcden), List.of()));
+						}
+						case SYSCALL_6 -> {
+							final var abcdefn = TypeChecker.checkArity(ctx, linkedToken, 7);
+							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abcdefn), List.of()));
+						}
 						default -> throw new AssertionError("Encountered unknown intrinsic: " + linkedToken.data);
 					}
 					++ctx.pointer;

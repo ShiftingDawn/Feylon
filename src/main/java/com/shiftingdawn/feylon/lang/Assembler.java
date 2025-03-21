@@ -66,6 +66,14 @@ final class Assembler {
 			case LOAD_16 -> (Instruction) MemoryInstructions::load16;
 			case STORE_32 -> (Instruction) MemoryInstructions::store32;
 			case LOAD_32 -> (Instruction) MemoryInstructions::load32;
+
+			case SYSCALL_0 -> (Instruction) SystemInstructions::syscall0;
+			case SYSCALL_1 -> (Instruction) SystemInstructions::syscall1;
+			case SYSCALL_2 -> (Instruction) SystemInstructions::syscall2;
+			case SYSCALL_3 -> (Instruction) SystemInstructions::syscall3;
+			case SYSCALL_4 -> (Instruction) SystemInstructions::syscall4;
+			case SYSCALL_5 -> (Instruction) SystemInstructions::syscall5;
+			case SYSCALL_6 -> (Instruction) SystemInstructions::syscall6;
 		});
 	}
 }
