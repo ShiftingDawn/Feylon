@@ -1,0 +1,14 @@
+const SYS_READ  0 end
+const SYS_WRITE 1 end
+
+const STDIN  0 end
+const STDOUT 1 end
+const STDERR 2 end
+
+function print(str)
+    STDOUT SYS_WRITE syscall3
+end
+
+function error(str)
+    STDERR SYS_WRITE syscall3
+end

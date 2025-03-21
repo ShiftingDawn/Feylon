@@ -2,8 +2,6 @@ package com.shiftingdawn.feylon.lang;
 
 public enum TokenType {
 
-	IMPORT,
-
 	INT,
 	BOOL,
 	STRING,

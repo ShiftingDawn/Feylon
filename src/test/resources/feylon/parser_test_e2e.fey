@@ -1,0 +1,6 @@
+//FourTwenty
+import "class:/std.fey"
+
+"FourTwenty" print
+"ThisErrorIsATest_IgnoreMe" error
+

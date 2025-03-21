@@ -1,11 +1,5 @@
 package com.shiftingdawn.feylon.lang;
 
-import com.shiftingdawn.feylon.OrderedList;
-
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.AccessDeniedException;
-
 final class Linker {
 
 	public static LinkerContext link(final ParserContext parserContext) {
@@ -13,7 +7,6 @@ final class Linker {
 		while (!ctx.tokens.isEmpty()) {
 			final Token token = ctx.tokens.pop();
 			switch (token.type()) {
-				case IMPORT -> Linker.handleImport(ctx, token);
 				case INT -> ctx.result.append(new LinkedToken(token.pos(), ctx.pointer++, InstructionType.PUSH_INT, token.txt(), token.data()));
 				case BOOL -> ctx.result.append(new LinkedToken(token.pos(), ctx.pointer++, InstructionType.PUSH_BOOL, token.txt(), token.data()));
 				case STRING -> ctx.result.append(new LinkedToken(token.pos(), ctx.pointer++, InstructionType.PUSH_STRING, token.txt(), token.data()));
@@ -97,21 +90,6 @@ final class Linker {
 			}
 			default -> throw new FeylonException(token.pos(),
 					"Encountered '%s' statement that references an invalid instruction '%s'. This is a linking error.".formatted(TokenType.END, reference.type));
-		}
-	}
-
-	private static void handleImport(final LinkerContext ctx, final Token token) {
-		try {
-			final ResolvedSources resolvedSources = Feylon.readSources((String) token.data(), token.pos().file());
-			final OrderedList<LexedToken> lexedImport = Lexer.lex(resolvedSources);
-			final ParserContext importTokens = Tokenizer.tokenize(lexedImport);
-			ctx.add(importTokens);
-		} catch (final FileNotFoundException e) {
-			throw new FeylonException(token.pos(), "Imported path does not exist: " + e.getMessage());
-		} catch (final AccessDeniedException e) {
-			throw new FeylonException(token.pos(), "Could not get read access for import: " + e.getMessage());
-		} catch (final IOException e) {
-			throw new FeylonException(token.pos(), "Could not read import: " + e.getMessage());
 		}
 	}
 }

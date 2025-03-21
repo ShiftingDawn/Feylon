@@ -2,14 +2,21 @@ package com.shiftingdawn.feylon.lang;
 
 import com.shiftingdawn.feylon.OrderedList;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.file.AccessDeniedException;
+import java.util.ArrayList;
+
 final class Tokenizer {
 
 	public static ParserContext tokenize(final OrderedList<LexedToken> lexedTokens) {
 		lexedTokens.reverse();
 		final ParserContext ctx = new ParserContext();
 		while (!lexedTokens.isEmpty()) {
-			final LexedToken token = lexedTokens.pop();
-			ctx.result.append(Tokenizer.parseToken(ctx, lexedTokens, token));
+			final Token token = Tokenizer.parseToken(ctx, lexedTokens, lexedTokens.pop());
+			if (token.type() != null) {
+				ctx.result.append(token);
+			}
 		}
 		return ctx;
 	}
@@ -33,7 +40,8 @@ final class Tokenizer {
 			if (nextToken.type() != TokenType.STRING) {
 				throw new FeylonException(token.pos(), "Expected import path as string, got: " + nextToken.type());
 			}
-			return new Token(token.pos(), TokenType.IMPORT, token.content(), nextToken.data());
+			Tokenizer.handleImport(lexedTokens, nextToken);
+			return new Token(new TokenPos(null, -1, -1), null, null, null);
 		}
 		final Intrinsics intrinsic = Intrinsics.getByText(token.content());
 		if (intrinsic != null) {
@@ -159,5 +167,19 @@ final class Tokenizer {
 		}
 		ctx.functions.put(funcName.content(), new FunctionSignature(inputs, outputs));
 		return new Token(token.pos(), TokenType.FUNCTION, funcName.content(), null);
+	}
+
+	private static void handleImport(final OrderedList<LexedToken> lexedTokens, final Token token) {
+		try {
+			final ResolvedSources resolvedSources = Feylon.readSources((String) token.data(), token.pos().file());
+			final OrderedList<LexedToken> lexedImport = Lexer.lex(resolvedSources);
+			lexedTokens.addAll(new ArrayList<>(lexedImport).reversed());
+		} catch (final FileNotFoundException e) {
+			throw new FeylonException(token.pos(), "Imported path does not exist: " + e.getMessage());
+		} catch (final AccessDeniedException e) {
+			throw new FeylonException(token.pos(), "Could not get read access for import: " + e.getMessage());
+		} catch (final IOException e) {
+			throw new FeylonException(token.pos(), "Could not read import: " + e.getMessage());
+		}
 	}
 }

@@ -49,8 +49,7 @@ final class TypeChecker {
 					++ctx.pointer;
 				}
 				case PUSH_STRING -> {
-					ctx.stack.append(new TypedPos(linkedToken.pos, DataType.INT));
-					ctx.stack.append(new TypedPos(linkedToken.pos, DataType.POINTER));
+					ctx.stack.append(new TypedPos(linkedToken.pos, DataType.STRING));
 					++ctx.pointer;
 				}
 				case PUSH_POINTER -> {

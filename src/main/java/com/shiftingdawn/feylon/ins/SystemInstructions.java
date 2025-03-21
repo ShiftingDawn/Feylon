@@ -25,8 +25,8 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 1) {
 			throw new AssertionError("SysCall '%s' required 1 argument".formatted(call));
 		}
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 
@@ -36,9 +36,9 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 2) {
 			throw new AssertionError("SysCall '%s' required 2 arguments".formatted(call));
 		}
-		Register.RSI.set(data.pop());
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
+		Register.RSI.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 
@@ -48,10 +48,10 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 3) {
 			throw new AssertionError("SysCall '%s' required 3 arguments".formatted(call));
 		}
-		Register.RDX.set(data.pop());
-		Register.RSI.set(data.pop());
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
+		Register.RSI.set(data.pop());
+		Register.RDX.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 
@@ -61,11 +61,11 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 4) {
 			throw new AssertionError("SysCall '%s' required 4 arguments".formatted(call));
 		}
-		Register.R10.set(data.pop());
-		Register.RDX.set(data.pop());
-		Register.RSI.set(data.pop());
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
+		Register.RSI.set(data.pop());
+		Register.RDX.set(data.pop());
+		Register.R10.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 
@@ -75,12 +75,12 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 5) {
 			throw new AssertionError("SysCall '%s' required 5 arguments".formatted(call));
 		}
-		Register.R8.set(data.pop());
-		Register.R10.set(data.pop());
-		Register.RDX.set(data.pop());
-		Register.RSI.set(data.pop());
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
+		Register.RSI.set(data.pop());
+		Register.RDX.set(data.pop());
+		Register.R10.set(data.pop());
+		Register.R8.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 
@@ -90,13 +90,13 @@ public class SystemInstructions {
 		if (sysCall.getArgCount() != 6) {
 			throw new AssertionError("SysCall '%s' required 6 arguments".formatted(call));
 		}
-		Register.R9.set(data.pop());
-		Register.R8.set(data.pop());
-		Register.R10.set(data.pop());
-		Register.RDX.set(data.pop());
-		Register.RSI.set(data.pop());
-		Register.RDI.set(data.pop());
 		Register.RAX.set(call);
+		Register.RDI.set(data.pop());
+		Register.RSI.set(data.pop());
+		Register.RDX.set(data.pop());
+		Register.R10.set(data.pop());
+		Register.R8.set(data.pop());
+		Register.R9.set(data.pop());
 		sysCall.instantiate().apply(memory);
 	}
 }

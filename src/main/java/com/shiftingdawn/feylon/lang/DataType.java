@@ -4,7 +4,8 @@ public enum DataType {
 
 	INT("int"),
 	BOOL("bool"),
-	POINTER("ptr");
+	POINTER("ptr"),
+	STRING("str");
 
 	private final String textValue;
 
