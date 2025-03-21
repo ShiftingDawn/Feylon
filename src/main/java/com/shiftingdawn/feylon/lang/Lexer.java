@@ -20,23 +20,23 @@ final class Lexer {
 					if (endPos >= line.length()) {
 						final int startLine = lineNr;
 						final int startPos = pos;
-						final StringBuilder stringBuilder = new StringBuilder(line.substring(pos)).append('\n');
+						final StringBuilder stringBuilder = new StringBuilder(Lexer.unescape(line.substring(pos))).append('\n');
 						pos = 0;
 						while (lineIterator.hasNext()) {
 							line = lineIterator.next();
 							++lineNr;
 							endPos = Lexer.find(line, pos + 1, x -> x == '"');
 							if (endPos >= line.length()) {
-								stringBuilder.append(line).append('\n');
+								stringBuilder.append(Lexer.unescape(line)).append('\n');
 							} else {
-								stringBuilder.append(line, 0, endPos + 1);
+								stringBuilder.append(Lexer.unescape(line), 0, endPos + 1);
 								tokens.append(new LexedToken(sources.file(), startLine, startPos, stringBuilder.toString()));
 								pos = Lexer.find(line, endPos + 2, x -> !Character.isWhitespace(x));
 								break;
 							}
 						}
 					} else {
-						tokens.append(new LexedToken(sources.file(), lineNr, pos, line.substring(pos, endPos + 1)));
+						tokens.append(new LexedToken(sources.file(), lineNr, pos, Lexer.unescape(line.substring(pos, endPos + 1))));
 						pos = Lexer.find(line, endPos + 2, x -> !Character.isWhitespace(x));
 						continue;
 					}
@@ -58,5 +58,11 @@ final class Lexer {
 			++startPos;
 		}
 		return startPos;
+	}
+
+	private static String unescape(final String str) {
+		return str.replace("\\t", "\t")
+				.replace("\\n", "\n")
+				.replace("\\r", "\r");
 	}
 }
