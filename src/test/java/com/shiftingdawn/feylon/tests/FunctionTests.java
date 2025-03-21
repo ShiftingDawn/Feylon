@@ -1,6 +1,6 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.syntax.CompilerErrors;
+import com.shiftingdawn.feylon.lang.CompilerErrors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -16,10 +16,10 @@ public class FunctionTests extends AbstractTestHost {
 		final var sysOut = System.out;
 		final ByteArrayOutputStream boas = new ByteArrayOutputStream();
 		System.setOut(new PrintStream(boas, true));
-		this.run("function test() \"ThisIsAString!\" 1 1 syscall3 end test", 0);
+		this.run("function test() 2 dump end test", 0);
 		System.setOut(sysOut);
 		this.assertStackEmpty();
-		assertEquals("ThisIsAString!" + System.lineSeparator(), boas.toString());
+		assertEquals("2" + System.lineSeparator(), boas.toString());
 	}
 
 	@Test

@@ -1,12 +1,11 @@
 package com.shiftingdawn.feylon;
 
-import com.shiftingdawn.feylon.syntax.Compiler;
-import com.shiftingdawn.feylon.syntax.Program;
+import com.shiftingdawn.feylon.lang.AssembledProgram;
+import com.shiftingdawn.feylon.lang.Feylon;
+import com.shiftingdawn.feylon.lang.ResolvedSources;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.List;
 
 public final class Main {
 
@@ -30,8 +29,8 @@ public final class Main {
 				System.exit(1);
 			}
 			try {
-				final List<String> lines = Files.readAllLines(f.toPath());
-				final Program program = Compiler.compile(f.getAbsolutePath(), lines);
+				final ResolvedSources sources = Feylon.readSources(f.getAbsolutePath(), null);
+				final AssembledProgram program = Feylon.parse(sources, 0);
 				new Simulator().execute(program);
 			} catch (final IOException e) {
 				System.err.println("Could not read file");

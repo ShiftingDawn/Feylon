@@ -1,6 +1,6 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.syntax.CompilerErrors;
+import com.shiftingdawn.feylon.lang.CompilerErrors;
 import org.junit.jupiter.api.Test;
 
 public class OperationTests extends AbstractTestHost {

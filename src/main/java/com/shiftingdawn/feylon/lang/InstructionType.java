@@ -1,21 +1,19 @@
-package com.shiftingdawn.feylon.syntax;
+package com.shiftingdawn.feylon.lang;
 
 public enum InstructionType {
 
 	PUSH_INT,
+	PUSH_BOOL,
 	PUSH_STRING,
 
 	INTRINSIC,
 
-	JUMP,
+	FUNCTION,
 	CALL,
 	RETURN,
 
-	IF,
-	ELSE,
-	WHILE,
+	JUMP,
+	JUMP_EQ,
+	JUMP_NEQ,
 	DO,
-	FUNCTION,
-
-	INSTRUCTION
 }

@@ -1,8 +1,5 @@
 package com.shiftingdawn.feylon.lang;
 
-import java.util.Arrays;
-import java.util.Optional;
-
 public enum Intrinsics {
 
 	TRUE("true"),
@@ -27,11 +24,17 @@ public enum Intrinsics {
 	BITWISE_OR("|"),
 	BITWISE_XOR("^"),
 
-	ARROW("->", false),
 	CAST_INTEGER("cast(int)", false),
 	CAST_BOOLEAN("cast(bool)", false),
 	CAST_STRING("cast(str)", false),
-	CAST_POINTER("cast(ptr)", false);
+	CAST_POINTER("cast(ptr)", false),
+
+	DUMP("dump"),
+	POP("pop"),
+	DUP("dup"),
+	SWAP("swap"),
+	OVER("over"),
+	ROT("rot");
 
 	public final String textValue;
 	public final boolean hasInstruction;
@@ -45,9 +48,12 @@ public enum Intrinsics {
 		this(textValue, true);
 	}
 
-	public static Optional<Intrinsics> getByText(final String str) {
-		return Arrays.stream(Intrinsics.values())
-				.filter(intrinsic -> intrinsic.textValue.equals(str))
-				.findFirst();
+	public static Intrinsics getByText(final String str) {
+		for (final Intrinsics intrinsic : Intrinsics.values()) {
+			if (intrinsic.textValue.equals(str)) {
+				return intrinsic;
+			}
+		}
+		return null;
 	}
 }

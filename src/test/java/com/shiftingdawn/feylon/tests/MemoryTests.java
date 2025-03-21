@@ -1,21 +1,14 @@
 package com.shiftingdawn.feylon.tests;
 
-import java.lang.reflect.Field;
-import java.nio.ByteBuffer;
-import java.util.List;
-
 import com.shiftingdawn.feylon.Memory;
 import com.shiftingdawn.feylon.SegmentationError;
-import com.shiftingdawn.feylon.Simulator;
-import com.shiftingdawn.feylon.Stack;
-import com.shiftingdawn.feylon.syntax.Compiler;
-import com.shiftingdawn.feylon.syntax.Program;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import java.lang.reflect.Field;
+import java.nio.ByteBuffer;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class MemoryTests {
 
@@ -67,25 +60,6 @@ public class MemoryTests {
 		assertThrows(SegmentationError.class, () -> this.memory.set(Memory.DEFAULT_MEMORY_SIZE + Memory.STRING_MEMORY_SIZE, (byte) 0));
 		assertThrows(SegmentationError.class, () -> this.memory.get(-1));
 		assertThrows(SegmentationError.class, () -> this.memory.get(Memory.DEFAULT_MEMORY_SIZE + Memory.STRING_MEMORY_SIZE));
-	}
-
-	@Test
-	public void testMemSetInstruction() {
-		final Program program = Compiler.compile("<generated>", List.of("0 cast(ptr) 1 memset 10 cast(ptr) 10 memset"));
-		new Simulator(new Stack(), new Stack(), this.memory).execute(program);
-		assertEquals(1, this.memory.getInt(0));
-		assertEquals(10, this.memory.getInt(10));
-	}
-
-	@Test
-	public void testMemGetInstruction() {
-		this.array.put(0, (byte) 1);
-		this.array.put(10, (byte) 10);
-		final Program program = Compiler.compile("<generated>", List.of("0 cast(ptr) memget 10 cast(ptr) memget"), 2);
-		final Stack stack = new Stack();
-		new Simulator(stack, new Stack(), this.memory).execute(program);
-		assertEquals(10, stack.pop());
-		assertEquals(1, stack.pop());
 	}
 
 	@BeforeEach

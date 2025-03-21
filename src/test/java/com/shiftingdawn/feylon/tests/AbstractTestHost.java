@@ -4,10 +4,7 @@ import com.shiftingdawn.feylon.Memory;
 import com.shiftingdawn.feylon.Simulator;
 import com.shiftingdawn.feylon.Stack;
 import com.shiftingdawn.feylon.StackUnderflowError;
-import com.shiftingdawn.feylon.syntax.Compiler;
-import com.shiftingdawn.feylon.syntax.CompilerErrors;
-import com.shiftingdawn.feylon.syntax.CompilerException;
-import com.shiftingdawn.feylon.syntax.Program;
+import com.shiftingdawn.feylon.lang.*;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
@@ -22,7 +19,7 @@ public abstract class AbstractTestHost {
 		this.dataStack = new Stack();
 		this.returnStack = new Stack();
 		this.memory = new Memory();
-		final Program program = Compiler.compile("<generated>", List.of(src), vars);
+		final AssembledProgram program = Feylon.parse(new ResolvedSources("<generated>", List.of(src)), vars);
 		new Simulator(this.dataStack, this.returnStack, this.memory).execute(program);
 	}
 

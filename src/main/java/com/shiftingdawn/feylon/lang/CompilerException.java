@@ -1,6 +1,4 @@
-package com.shiftingdawn.feylon.syntax;
-
-import com.shiftingdawn.feylon.lang.TokenPos;
+package com.shiftingdawn.feylon.lang;
 
 import java.io.Serial;
 import java.util.AbstractMap;

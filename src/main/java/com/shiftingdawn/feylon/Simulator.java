@@ -1,6 +1,6 @@
 package com.shiftingdawn.feylon;
 
-import com.shiftingdawn.feylon.syntax.Program;
+import com.shiftingdawn.feylon.lang.AssembledProgram;
 
 public class Simulator {
 
@@ -19,8 +19,11 @@ public class Simulator {
 		this(new Stack(), new Stack(), new Memory());
 	}
 
-	public void execute(final Program program) {
-		final Instruction[] instructions = program.instructions();
+	public void execute(final AssembledProgram program) {
+		this.execute(program.instructions());
+	}
+
+	private void execute(final Instruction[] instructions) {
 		while (this.currentInstruction < instructions.length) {
 			final Instruction instruction = instructions[this.currentInstruction++];
 			if (instruction == null) {
