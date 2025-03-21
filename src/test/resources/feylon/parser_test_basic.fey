@@ -2,7 +2,7 @@
 
 0 1 + dump
 1 1 + dump //Comment ignored
-1 2 + dump
+1 2 + dump//Also ignored
 4 -1 + dump
 -4 6 + dump
 2 -1 + dump

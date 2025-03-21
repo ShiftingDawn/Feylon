@@ -41,7 +41,11 @@ final class Lexer {
 						continue;
 					}
 				}
+				line = line.split("//")[0];
 				final int endPos = Lexer.find(line, pos + 1, Character::isWhitespace);
+				if (endPos > line.length()) {
+					break;
+				}
 				final String tokenText = line.substring(pos, endPos);
 				if (tokenText.startsWith("//")) {
 					break;
