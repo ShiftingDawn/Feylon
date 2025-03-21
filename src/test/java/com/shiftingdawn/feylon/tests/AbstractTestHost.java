@@ -4,7 +4,10 @@ import com.shiftingdawn.feylon.Memory;
 import com.shiftingdawn.feylon.Simulator;
 import com.shiftingdawn.feylon.Stack;
 import com.shiftingdawn.feylon.StackUnderflowError;
-import com.shiftingdawn.feylon.lang.*;
+import com.shiftingdawn.feylon.lang.AssembledProgram;
+import com.shiftingdawn.feylon.lang.Feylon;
+import com.shiftingdawn.feylon.lang.FeylonException;
+import com.shiftingdawn.feylon.lang.ResolvedSources;
 import org.junit.jupiter.api.Assertions;
 
 import java.util.List;
@@ -18,9 +21,9 @@ public abstract class AbstractTestHost {
 	public void run(final String src, final int vars) {
 		this.dataStack = new Stack();
 		this.returnStack = new Stack();
-		this.memory = new Memory();
+		this.memory = new Memory(64);
 		final AssembledProgram program = Feylon.parse(new ResolvedSources("<generated>", List.of(src)), vars);
-		new Simulator(this.dataStack, this.returnStack, this.memory).execute(program);
+		new Simulator(this.dataStack, this.returnStack, this.memory, program).execute();
 	}
 
 	public void assertStack(final int value) {
@@ -39,11 +42,7 @@ public abstract class AbstractTestHost {
 		Assertions.assertThrows(StackUnderflowError.class, this.dataStack::pop);
 	}
 
-	public void assertExceptionWithCode(final CompilerErrors error, final String program) {
-		final CompilerException ex = Assertions.assertThrows(CompilerException.class, () -> this.run(program, 0));
-		if (!error.equals(ex.code)) {
-			ex.printStackTrace();
-			Assertions.assertEquals(error, ex.code);
-		}
+	public void assertThrows(final String program) {
+		Assertions.assertThrows(FeylonException.class, () -> this.run(program, 0));
 	}
 }

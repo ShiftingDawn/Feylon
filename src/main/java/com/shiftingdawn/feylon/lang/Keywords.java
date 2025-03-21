@@ -4,6 +4,7 @@ public enum Keywords {
 
 	FUNCTION("function"),
 	CONST("const"),
+	MEMORY("memory"),
 
 	END("end"),
 

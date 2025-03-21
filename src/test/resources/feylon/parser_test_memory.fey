@@ -1,0 +1,23 @@
+//100 -120 5000 34464 100000
+
+const BYTE 1 end
+const SHORT BYTE 2 * end
+const INT SHORT 2 * end
+
+memory mem_a BYTE end
+100 mem_a store
+mem_a load dump
+memory mem_b BYTE end
+5000 mem_b store
+mem_b load dump
+
+memory mem_c SHORT end
+5000 mem_c store16
+mem_c load16 dump
+memory mem_d SHORT end
+100000 mem_d store16
+mem_d load16 dump
+
+memory mem_e INT end
+100000 mem_e store32
+mem_e load32 dump

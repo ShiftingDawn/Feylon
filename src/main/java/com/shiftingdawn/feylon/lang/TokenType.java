@@ -11,6 +11,8 @@ public enum TokenType {
 	INTRINSIC,
 	CONST,
 	CONST_REF,
+	MEMORY,
+	MEMORY_REF,
 
 	FUNCTION,
 	FUNCTION_CALL,

@@ -3,8 +3,8 @@ package com.shiftingdawn.feylon.tests;
 import com.shiftingdawn.feylon.Main;
 import com.shiftingdawn.feylon.Simulator;
 import com.shiftingdawn.feylon.lang.AssembledProgram;
-import com.shiftingdawn.feylon.lang.CompilerException;
 import com.shiftingdawn.feylon.lang.Feylon;
+import com.shiftingdawn.feylon.lang.FeylonException;
 import com.shiftingdawn.feylon.lang.ResolvedSources;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -27,6 +27,7 @@ public class ProgramTests {
 			"parser_test_basic",
 			"parser_test_blocks",
 			"parser_test_consts",
+			"parser_test_memory",
 	};
 
 	@ParameterizedTest
@@ -41,8 +42,8 @@ public class ProgramTests {
 		System.setOut(new PrintStream(boas, true));
 		try {
 			final AssembledProgram program = Feylon.parse(sources, 0);
-			new Simulator().execute(program);
-		} catch (final CompilerException ex) {
+			new Simulator(program).execute();
+		} catch (final FeylonException ex) {
 			ex.printStackTrace();
 			throw ex;
 		}

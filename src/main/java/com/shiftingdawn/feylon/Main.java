@@ -31,7 +31,7 @@ public final class Main {
 			try {
 				final ResolvedSources sources = Feylon.readSources(f.getAbsolutePath(), null);
 				final AssembledProgram program = Feylon.parse(sources, 0);
-				new Simulator().execute(program);
+				new Simulator(program).execute();
 			} catch (final IOException e) {
 				System.err.println("Could not read file");
 				e.printStackTrace();

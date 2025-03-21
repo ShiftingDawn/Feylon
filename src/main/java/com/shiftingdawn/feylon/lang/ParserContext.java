@@ -10,4 +10,6 @@ final class ParserContext {
 	public final OrderedList<Token> result = new OrderedList<>();
 	public final Map<String, FunctionSignature> functions = new HashMap<>();
 	public final Map<String, ConstDef> constants = new HashMap<>();
+	public final Map<String, MemoryDef> memories = new HashMap<>();
+	public int totalMemory = 0;
 }

@@ -4,6 +4,7 @@ import com.shiftingdawn.feylon.Instruction;
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.ins.*;
 import com.shiftingdawn.feylon.ins.jump.*;
+import com.shiftingdawn.feylon.ins.mem.*;
 
 final class Assembler {
 
@@ -17,6 +18,7 @@ final class Assembler {
 				case PUSH_INT -> ctx.result.append(new PushIntInstruction((int) token.data));
 				case PUSH_BOOL -> ctx.result.append(new PushBooleanInstruction((boolean) token.data));
 				case PUSH_STRING -> ctx.result.append(new PushStringInstruction((String) token.data));
+				case PUSH_POINTER -> ctx.result.append(new PushPointerInstruction((int) token.data));
 				case INTRINSIC -> Assembler.processIntrinsic(ctx, token);
 
 				case FUNCTION -> ctx.result.append(new JumpInstruction((int) token.data - skippedPointerOffset));
@@ -31,7 +33,7 @@ final class Assembler {
 				default -> throw new AssertionError("Encountered unhandled token: " + token.type);
 			}
 		}
-		return new AssembledProgram(ctx.result.toArray(Instruction[]::new));
+		return new AssembledProgram(ctx.result.toArray(Instruction[]::new), linkerContext.memSize);
 	}
 
 	private static void processIntrinsic(final AssemblerContext ctx, final LinkedToken token) {
@@ -64,6 +66,12 @@ final class Assembler {
 			case SWAP -> new SwapInstruction();
 			case OVER -> new OverInstruction();
 			case ROT -> new RotInstruction();
+			case STORE -> new MemStore8Instruction();
+			case LOAD -> new MemLoad8Instruction();
+			case STORE_16 -> new MemStore16Instruction();
+			case LOAD_16 -> new MemLoad16Instruction();
+			case STORE_32 -> new MemStore32Instruction();
+			case LOAD_32 -> new MemLoad32Instruction();
 		});
 	}
 }

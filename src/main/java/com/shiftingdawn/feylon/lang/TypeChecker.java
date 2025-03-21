@@ -53,6 +53,10 @@ final class TypeChecker {
 					ctx.stack.append(new TypedPos(linkedToken.pos, DataType.POINTER));
 					++ctx.pointer;
 				}
+				case PUSH_POINTER -> {
+					ctx.stack.append(new TypedPos(linkedToken.pos, DataType.POINTER));
+					++ctx.pointer;
+				}
 				case FUNCTION -> {
 					ctx.pointer = (int) linkedToken.data;
 				}
@@ -72,7 +76,7 @@ final class TypeChecker {
 					TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(new TypedPos(linkedToken.pos, DataType.BOOL)), List.of()));
 					++ctx.pointer;
 					if (!(linkedToken.data instanceof final Integer jumpPointer)) {
-						throw new CompilerException(linkedToken.pos, CompilerErrors.UNCLOSED_STATEMENT, "Missing '%s' statement".formatted(Keywords.END.textValue));
+						throw new FeylonException(linkedToken.pos, "Missing '%s' statement".formatted(Keywords.END.textValue));
 					}
 					contexts.append(new Context(new OrderedList<>(ctx.stack), jumpPointer, new OrderedList<>()));
 				}
@@ -83,7 +87,7 @@ final class TypeChecker {
 						final OrderedList<DataType> expectedTypes = new OrderedList<>(handledLoops.get(ctx.pointer).stream().map(TypedPos::type).toList());
 						final OrderedList<DataType> actualTypes = new OrderedList<>(ctx.stack.stream().map(TypedPos::type).toList());
 						if (expectedTypes.size() != actualTypes.size() || !actualTypes.containsAll(expectedTypes) || !expectedTypes.containsAll(actualTypes)) {
-							throw new CompilerException(linkedToken.pos, CompilerErrors.ILLEGAL_FRAME_MODIFICATION, "Loops are not allowed to modify the stack between iterations!")
+							throw new FeylonException(linkedToken.pos, "Loops are not allowed to modify the stack between iterations!")
 									.add(linkedToken.pos, "Stack BEFORE loop:")
 									.add(add -> {
 										if (handledLoops.get(ctx.pointer).isEmpty()) {
@@ -108,10 +112,20 @@ final class TypeChecker {
 						case TRUE, FALSE -> {
 							ctx.stack.append(new TypedPos(linkedToken.pos, DataType.BOOL));
 						}
-						case ADD -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
+						case ADD -> TypeChecker.checkSignature(linkedToken, ctx,
+								new Signature(
+										List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+										List.of(new TypedPos(linkedToken.pos, DataType.INT))
+								),
+								new Signature(
+										List.of(new TypedPos(linkedToken.pos, DataType.POINTER), new TypedPos(linkedToken.pos, DataType.INT)),
+										List.of(new TypedPos(linkedToken.pos, DataType.POINTER))
+								),
+								new Signature(
+										List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.POINTER)),
+										List.of(new TypedPos(linkedToken.pos, DataType.POINTER))
+								)
+						);
 						case SUBTRACT -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
 								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
 								List.of(new TypedPos(linkedToken.pos, DataType.INT))
@@ -208,33 +222,18 @@ final class TypeChecker {
 							final var abc = TypeChecker.checkArity(ctx, linkedToken, 3);
 							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abc[0], abc[1], abc[2]), List.of(abc[1], abc[2], abc[0])));
 						}
+						case STORE, STORE_16, STORE_32 -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.POINTER)),
+								List.of()
+						));
+						case LOAD, LOAD_16, LOAD_32 -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.POINTER)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
 						default -> throw new AssertionError("Encountered unknown intrinsic: " + linkedToken.data);
 					}
 					++ctx.pointer;
 				}
-//				case INSTRUCTION -> {
-//					switch (Operations.getByText(linkedToken.txt).orElseThrow(() -> new AssertionError("Unknown operation: " + linkedToken.txt))) {
-//						case NOOP -> {
-//						}
-//						case SYSCALL3 -> {
-//							final var abcn = TypeChecker.checkArity(ctx, linkedToken, 4);
-//							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(abcn), List.of()));
-//						}
-//						case MEM -> {
-//						}
-//						case MEMGET -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-//								List.of(new TypedPos(DataType.POINTER, linkedToken.pos)),
-//								List.of(new TypedPos(linkedToken.pos, DataType.INT)))
-//						);
-//						case MEMSET -> {
-//							final var dp = TypeChecker.checkArity(ctx, linkedToken, 2);
-//							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(new TypedPos(DataType.POINTER, dp[1].pos()), dp[0]), List.of()));
-//						}
-//
-//						default -> throw new AssertionError("Encountered unknown operation: " + linkedToken.data);
-//					}
-//					++ctx.pointer;
-//				}
 				default -> throw new AssertionError("Encountered unhandled token: " + linkedToken.type);
 			}
 		}
@@ -243,7 +242,7 @@ final class TypeChecker {
 	private static TypedPos[] checkArity(final Context ctx, final LinkedToken src, final int count) {
 		final TypedPos[] result = new TypedPos[count];
 		if (ctx.stack.size() < count) {
-			throw new CompilerException(src.pos, CompilerErrors.MISSING_ARGUMENTS, "Not enough arguments were provided for '%s'. Expected %s but got %s".formatted(src.txt, count, ctx.stack.size()));
+			throw new FeylonException(src.pos, "Not enough arguments were provided for '%s'. Expected %s but got %s".formatted(src.txt, count, ctx.stack.size()));
 		}
 		for (int i = 0; i < count; ++i) {
 			result[i] = ctx.stack.get(ctx.stack.size() - 1 - i);
@@ -251,32 +250,49 @@ final class TypeChecker {
 		return result;
 	}
 
-	private static void checkSignature(final LinkedToken src, final Context ctx, final Signature signature) {
-		final OrderedList<TypedPos> inputs = new OrderedList<>(signature.inputs());
-		final OrderedList<TypedPos> stack = new OrderedList<>(ctx.stack);
-		int argCount = 0;
-		while (!stack.isEmpty() && !inputs.isEmpty()) {
-			final TypedPos expected = inputs.pop();
-			final TypedPos actual = stack.pop();
-			if (expected.type() != actual.type()) {
-				throw new CompilerException(src.pos, CompilerErrors.INVALID_DATA, "Argument %s of %s is expected to be type '%s' but received type '%s' instead.".formatted(argCount, src.txt, expected.type(), actual.type()))
-						.add(actual.pos(), "Argument %s was found here".formatted(argCount))
-						.add(expected.pos(), "Expected type is defined here");
+	private static void checkSignature(final LinkedToken src, final Context ctx, final Signature... signatures) {
+		FeylonException ex = null;
+		MainLoop:
+		for (final Signature signature : signatures) {
+			final OrderedList<TypedPos> inputs = new OrderedList<>(signature.inputs());
+			final OrderedList<TypedPos> stack = new OrderedList<>(ctx.stack);
+			int argCount = 0;
+			while (!stack.isEmpty() && !inputs.isEmpty()) {
+				final TypedPos expected = inputs.pop();
+				final TypedPos actual = stack.pop();
+				if (expected.type() != actual.type()) {
+					final String errorMsg = "Argument %s of %s is expected to be type '%s' but received type '%s' instead.".formatted(argCount, src.txt, expected.type(), actual.type());
+					if (ex == null) {
+						ex = new FeylonException(src.pos, errorMsg);
+					} else {
+						ex.error(src.pos, errorMsg);
+					}
+					ex.add(actual.pos(), "Argument %s was found here".formatted(argCount))
+							.add(expected.pos(), "Expected type is defined here");
+					continue MainLoop;
+				}
+				++argCount;
 			}
-			++argCount;
+			if (stack.size() < inputs.size()) {
+				if (ex == null) {
+					ex = new FeylonException(src.pos, "Not enough arguments were provided for '%s' '%s'.".formatted(src.type, src.txt));
+				} else {
+					ex.error(src.pos, "Not enough arguments were provided for '%s' '%s'.".formatted(src.type, src.txt));
+				}
+				ex.add(src.pos, "Missing arguments:").add((adder) -> {
+					while (!inputs.isEmpty()) {
+						final TypedPos item = inputs.pop();
+						adder.accept(item.pos(), item.type().toString());
+					}
+				});
+				continue;
+			}
+			signature.outputs().forEach(stack::append);
+			ctx.stack = stack;
+			return;
 		}
-		if (stack.size() < inputs.size()) {
-			throw new CompilerException(src.pos, CompilerErrors.MISSING_ARGUMENTS, "Not enough arguments were provided for '%s' '%s'.".formatted(src.type, src.txt))
-					.add(src.pos, "Missing arguments:")
-					.add(add -> {
-						while (!inputs.isEmpty()) {
-							final TypedPos item = inputs.pop();
-							add.accept(item.pos(), item.type().toString());
-						}
-					});
-		}
-		signature.outputs().forEach(stack::append);
-		ctx.stack = stack;
+		assert ex != null;
+		throw ex;
 	}
 
 	private static void checkOutputs(final Context ctx, final int allowedOverflow) {
@@ -284,12 +300,12 @@ final class TypeChecker {
 			final TypedPos expected = ctx.outputs.pop();
 			final TypedPos actual = ctx.stack.pop();
 			if (expected.type() != actual.type()) {
-				throw new CompilerException(actual.pos(), CompilerErrors.INVALID_DATA, "Unexpected type '%s' placed on the stack.".formatted(actual.type()))
+				throw new FeylonException(actual.pos(), "Unexpected type '%s' placed on the stack.".formatted(actual.type()))
 						.add(expected.pos(), "Expected type: '%s'".formatted(expected.type()));
 			}
 		}
 		if (ctx.stack.size() - allowedOverflow > ctx.outputs.size()) {
-			throw new CompilerException(ctx.stack.getLast().pos(), CompilerErrors.UNHANDLED_DATA, "Found unhandled data on the stack:")
+			throw new FeylonException(ctx.stack.getLast().pos(), "Found unhandled data on the stack:")
 					.add(add -> {
 						while (!ctx.stack.isEmpty()) {
 							final TypedPos item = ctx.stack.pop();
@@ -297,7 +313,7 @@ final class TypeChecker {
 						}
 					});
 		} else if (ctx.stack.size() < ctx.outputs.size()) {
-			throw new CompilerException(ctx.outputs.getLast().pos(), CompilerErrors.MISSING_DATA, "Missing data on the stack. Expected:")
+			throw new FeylonException(ctx.outputs.getLast().pos(), "Missing data on the stack. Expected:")
 					.add(add -> {
 						while (!ctx.outputs.isEmpty()) {
 							final TypedPos item = ctx.stack.pop();

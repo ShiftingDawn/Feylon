@@ -34,7 +34,14 @@ public enum Intrinsics {
 	DUP("dup"),
 	SWAP("swap"),
 	OVER("over"),
-	ROT("rot");
+	ROT("rot"),
+
+	STORE("store"),
+	LOAD("load"),
+	STORE_16("store16"),
+	LOAD_16("load16"),
+	STORE_32("store32"),
+	LOAD_32("load32");
 
 	public final String textValue;
 	public final boolean hasInstruction;

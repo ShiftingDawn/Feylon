@@ -2,5 +2,5 @@ package com.shiftingdawn.feylon.lang;
 
 import com.shiftingdawn.feylon.Instruction;
 
-public record AssembledProgram(Instruction[] instructions) {
+public record AssembledProgram(Instruction[] instructions, int memorySize) {
 }

@@ -49,6 +49,9 @@ final class Tokenizer {
 		if (ctx.constants.containsKey(token.content())) {
 			return new Token(token.pos(), TokenType.CONST_REF, token.content(), null);
 		}
+		if (ctx.memories.containsKey(token.content())) {
+			return new Token(token.pos(), TokenType.MEMORY_REF, token.content(), null);
+		}
 		throw new FeylonException(token.pos(), "Unknown token: " + token.content());
 	}
 
@@ -63,6 +66,14 @@ final class Tokenizer {
 				final String constName = lexedTokens.pop().content();
 				ctx.constants.put(constName, null);
 				yield new Token(token.pos(), TokenType.CONST, constName, null);
+			}
+			case MEMORY -> {
+				if (lexedTokens.isEmpty()) {
+					throw new FeylonException(token.pos(), "Encountered incomplete memory definition");
+				}
+				final String memoryName = lexedTokens.pop().content();
+				ctx.memories.put(memoryName, null);
+				yield new Token(token.pos(), TokenType.MEMORY, memoryName, null);
 			}
 			case IF -> {
 				if (lexedTokens.isEmpty()) {
@@ -141,7 +152,7 @@ final class Tokenizer {
 			} else {
 				final DataType dataType = DataType.getByText(part.content());
 				if (dataType == null) {
-					throw new CompilerException(part.pos(), CompilerErrors.INVALID_FUNCTION_SIGNATURE, "Function signature contains unknown %s type: %s".formatted(input ? "input" : "output", part.content()));
+					throw new FeylonException(part.pos(), "Function signature contains unknown %s type: %s".formatted(input ? "input" : "output", part.content()));
 				}
 				(input ? inputs : outputs).append(new TypedPos(part.pos(), dataType));
 			}

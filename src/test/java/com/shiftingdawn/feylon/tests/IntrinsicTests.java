@@ -1,6 +1,5 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.lang.CompilerErrors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +11,7 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.assertStack(1);
 		this.assertStackEmpty();
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "dup");
+		this.assertThrows("dup");
 	}
 
 	@Test
@@ -22,8 +21,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(2);
 		this.assertStack(1);
 		this.assertStackEmpty();
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "over");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 over");
+		this.assertThrows("over");
+		this.assertThrows("1 over");
 	}
 
 	@Test
@@ -32,8 +31,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.assertStack(2);
 		this.assertStackEmpty();
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "swap");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 swap");
+		this.assertThrows("swap");
+		this.assertThrows("1 swap");
 	}
 
 	@Test
@@ -43,9 +42,9 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(3);
 		this.assertStack(2);
 		this.assertStackEmpty();
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "rot");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 rot");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 2 rot");
+		this.assertThrows("rot");
+		this.assertThrows("1 rot");
+		this.assertThrows("1 2 rot");
 	}
 
 	@Test
@@ -58,8 +57,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(6);
 		this.run("0 0 +", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "+");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 +");
+		this.assertThrows("+");
+		this.assertThrows("1 +");
 	}
 
 	@Test
@@ -70,8 +69,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(-3);
 		this.run("-6 -3 +", 1);
 		this.assertStack(-9);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "+");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-1 +");
+		this.assertThrows("+");
+		this.assertThrows("-1 +");
 	}
 
 	@Test
@@ -84,8 +83,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(5);
 		this.run("0 0 -", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 -");
+		this.assertThrows("-");
+		this.assertThrows("1 -");
 	}
 
 	@Test
@@ -96,8 +95,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(-1);
 		this.run("-10 -6 -", 1);
 		this.assertStack(-4);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-1 -");
+		this.assertThrows("-");
+		this.assertThrows("-1 -");
 	}
 
 	@Test
@@ -108,8 +107,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(0);
 		this.run("0 2 *", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "*");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 *");
+		this.assertThrows("*");
+		this.assertThrows("1 *");
 	}
 
 	@Test
@@ -122,8 +121,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(0);
 		this.run("2 -0 *", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "*");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-1 *");
+		this.assertThrows("*");
+		this.assertThrows("-1 *");
 	}
 
 	@Test
@@ -136,8 +135,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("4 3 /", 1);
 		this.assertStack(1);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "/");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 /");
+		this.assertThrows("/");
+		this.assertThrows("1 /");
 	}
 
 	@Test
@@ -148,8 +147,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(-1);
 		this.run("-4 3 /", 1);
 		this.assertStack(-1);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "/");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "-1 /");
+		this.assertThrows("/");
+		this.assertThrows("-1 /");
 	}
 
 	@Test
@@ -167,8 +166,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		Assertions.assertDoesNotThrow(() -> this.run("0 1 %", 1));
 		this.run("0 1 %", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "%");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 %");
+		this.assertThrows("%");
+		this.assertThrows("1 %");
 	}
 
 	@Test
@@ -177,8 +176,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 2 + 4 =", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "=");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 =");
+		this.assertThrows("=");
+		this.assertThrows("1 =");
 	}
 
 	@Test
@@ -187,8 +186,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 1 + 2 !=", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "!=");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 !=");
+		this.assertThrows("!=");
+		this.assertThrows("1 !=");
 	}
 
 	@Test
@@ -197,8 +196,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 1 + 2 <", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "<");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 <");
+		this.assertThrows("<");
+		this.assertThrows("1 <");
 	}
 
 	@Test
@@ -207,8 +206,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 1 + 2 >", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, ">");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 >");
+		this.assertThrows(">");
+		this.assertThrows("1 >");
 	}
 
 	@Test
@@ -219,8 +218,8 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 1 + 1 <=", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "<=");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 <=");
+		this.assertThrows("<=");
+		this.assertThrows("1 <=");
 	}
 
 	@Test
@@ -231,47 +230,47 @@ public class IntrinsicTests extends AbstractTestHost {
 		this.assertStack(1);
 		this.run("1 1 + 3 >=", 1);
 		this.assertStack(0);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, ">=");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 >=");
+		this.assertThrows(">=");
+		this.assertThrows("1 >=");
 	}
 
 	@Test
 	public void testShiftLeft() {
 		this.run("10 20 <<", 1);
 		this.assertStack(10 << 20);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "<<");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 <<");
+		this.assertThrows("<<");
+		this.assertThrows("1 <<");
 	}
 
 	@Test
 	public void testShiftRight() {
 		this.run("10 20 >>", 1);
 		this.assertStack(10 >> 20);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, ">>");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 >>");
+		this.assertThrows(">>");
+		this.assertThrows("1 >>");
 	}
 
 	@Test
 	public void testBitAnd() {
 		this.run("10 20 &", 1);
 		this.assertStack(10 & 20);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "&");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 &");
+		this.assertThrows("&");
+		this.assertThrows("1 &");
 	}
 
 	@Test
 	public void testBitOr() {
 		this.run("10 20 |", 1);
 		this.assertStack(10 | 20);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "|");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 |");
+		this.assertThrows("|");
+		this.assertThrows("1 |");
 	}
 
 	@Test
 	public void testBitXor() {
 		this.run("10 20 ^", 1);
 		this.assertStack(10 ^ 20);
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "^");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "1 ^");
+		this.assertThrows("^");
+		this.assertThrows("1 ^");
 	}
 }

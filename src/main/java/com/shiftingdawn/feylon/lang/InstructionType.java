@@ -5,6 +5,7 @@ public enum InstructionType {
 	PUSH_INT,
 	PUSH_BOOL,
 	PUSH_STRING,
+	PUSH_POINTER,
 
 	INTRINSIC,
 

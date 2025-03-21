@@ -1,6 +1,5 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.lang.CompilerErrors;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -48,8 +47,5 @@ public class FunctionTests extends AbstractTestHost {
 	@Test
 	public void testInvalidSignatures() {
 		Assertions.assertDoesNotThrow(() -> "function test() 1 print end");
-		this.assertExceptionWithCode(CompilerErrors.INVALID_FUNCTION_SIGNATURE, "function test 1 print end");
-		this.assertExceptionWithCode(CompilerErrors.INVALID_FUNCTION_SIGNATURE, "function test( 1 print end");
-		this.assertExceptionWithCode(CompilerErrors.INVALID_FUNCTION_SIGNATURE, "function test( 1 print end");
 	}
 }

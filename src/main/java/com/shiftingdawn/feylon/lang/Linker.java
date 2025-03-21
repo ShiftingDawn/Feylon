@@ -25,6 +25,10 @@ final class Linker {
 						default -> throw new AssertionError("Encountered unimplemented datatype '%s' of constant '%s'".formatted(constant.dataType(), token.txt()));
 					});
 				}
+				case MEMORY_REF -> {
+					final MemoryDef memory = parserContext.memories.get(token.txt());
+					ctx.result.append(new LinkedToken(token.pos(), ctx.pointer++, InstructionType.PUSH_POINTER, token.txt(), memory.offset));
+				}
 				case INTRINSIC -> ctx.result.append(new LinkedToken(token.pos(), ctx.pointer++, InstructionType.INTRINSIC, token.txt(), token.data()));
 				case END -> Linker.processBlock(ctx, token);
 				case FUNCTION -> {

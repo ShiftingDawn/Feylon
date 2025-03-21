@@ -1,14 +1,13 @@
 package com.shiftingdawn.feylon.tests;
 
-import com.shiftingdawn.feylon.lang.CompilerErrors;
 import org.junit.jupiter.api.Test;
 
 public class OperationTests extends AbstractTestHost {
 
 	@Test
 	public void testIf() {
-		this.assertExceptionWithCode(CompilerErrors.UNCLOSED_STATEMENT, "1 1 + 2 = if 3");
-		this.assertExceptionWithCode(CompilerErrors.MISSING_ARGUMENTS, "if 3 end");
+		this.assertThrows("1 1 + 2 = if 3");
+		this.assertThrows("if 3 end");
 		this.run("1 1 + 2 = if 3 end", 1);
 		this.assertStack(3);
 		this.run("1 2 + 4 = if 3 end", 1);
