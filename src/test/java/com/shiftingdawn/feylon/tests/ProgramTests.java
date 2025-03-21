@@ -28,6 +28,7 @@ public class ProgramTests {
 			"parser_test_blocks",
 			"parser_test_consts",
 			"parser_test_memory",
+			"parser_test_fib",
 	};
 
 	@ParameterizedTest

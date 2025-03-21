@@ -1,0 +1,16 @@
+//0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 0 1 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987 1597 2584 4181 6765 10946 17711 28657 46368 75025 121393 196418 317811 514229 832040 1346269 2178309 3524578
+
+function fib(int)                  //1 integer input argument
+    memory maxmem 4 end            //Create memory to store input arg in
+    maxmem store32                 //Store input arg (last item on stack) in mem
+
+    0 1                            //Fibonacci starts with 0 and 1
+    while over maxmem load32 < do  //while the second item on the stack is less than the value stored in the memory
+        swap dup dump swap         //Swap the stack, duplicate the last item, print it and swap back
+        dup rot                    //Duplicate the last item and rotate it to the end (0 1 -> 0 1 1 -> 1 0 1)
+        +                          //Add the last two items
+    end pop pop                    //When the loop is done, drop the two existing fib numbers to prevent stack pollution after the func
+end
+
+5000 fib                           //Call fib function with 1 argument 5000
+4000000 fib                        //Call fib function with 1 argument 4000000
