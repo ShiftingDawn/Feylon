@@ -1,6 +1,4 @@
-package com.shiftingdawn.feylon;
-
-import com.shiftingdawn.feylon.syscall.WriteSysCall;
+package com.shiftingdawn.feylon.syscall;
 
 import java.util.Arrays;
 import java.util.Optional;

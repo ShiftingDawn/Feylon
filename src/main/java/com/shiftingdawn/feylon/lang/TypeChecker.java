@@ -109,9 +109,6 @@ final class TypeChecker {
 				case INTRINSIC -> {
 					assert linkedToken.data instanceof Intrinsics;
 					switch ((Intrinsics) linkedToken.data) {
-						case TRUE, FALSE -> {
-							ctx.stack.append(new TypedPos(linkedToken.pos, DataType.BOOL));
-						}
 						case ADD -> TypeChecker.checkSignature(linkedToken, ctx,
 								new Signature(
 										List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
@@ -142,6 +139,27 @@ final class TypeChecker {
 								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
 								List.of(new TypedPos(linkedToken.pos, DataType.INT))
 						));
+						case SHIFT_LEFT -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+						case SHIFT_RIGHT -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+						case BITWISE_AND -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+						case BITWISE_OR -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+						case BITWISE_XOR -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+
 						case EQUALS -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
 								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
 								List.of(new TypedPos(linkedToken.pos, DataType.BOOL))
@@ -166,38 +184,6 @@ final class TypeChecker {
 								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
 								List.of(new TypedPos(linkedToken.pos, DataType.BOOL))
 						));
-						case SHIFT_LEFT -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
-						case SHIFT_RIGHT -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
-						case BITWISE_AND -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
-						case BITWISE_OR -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
-						case BITWISE_XOR -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
-								List.of(new TypedPos(linkedToken.pos, DataType.INT), new TypedPos(linkedToken.pos, DataType.INT)),
-								List.of(new TypedPos(linkedToken.pos, DataType.INT))
-						));
-						case CAST_INTEGER -> {
-							final var a = TypeChecker.checkArity(ctx, linkedToken, 1)[0];
-							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(a), List.of(new TypedPos(a.pos(), DataType.INT))));
-						}
-						case CAST_BOOLEAN -> {
-							final var a = TypeChecker.checkArity(ctx, linkedToken, 1)[0];
-							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(a), List.of(new TypedPos(a.pos(), DataType.BOOL))));
-						}
-						case CAST_POINTER -> {
-							final var a = TypeChecker.checkArity(ctx, linkedToken, 1)[0];
-							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(a), List.of(new TypedPos(a.pos(), DataType.POINTER))));
-						}
 						case DUMP -> {
 							final var a = TypeChecker.checkArity(ctx, linkedToken, 1)[0];
 							TypeChecker.checkSignature(linkedToken, ctx, new Signature(List.of(a), List.of()));
@@ -227,6 +213,10 @@ final class TypeChecker {
 								List.of()
 						));
 						case LOAD, LOAD_16, LOAD_32 -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
+								List.of(new TypedPos(linkedToken.pos, DataType.POINTER)),
+								List.of(new TypedPos(linkedToken.pos, DataType.INT))
+						));
+						case SYSCALL_0 -> TypeChecker.checkSignature(linkedToken, ctx, new Signature(
 								List.of(new TypedPos(linkedToken.pos, DataType.POINTER)),
 								List.of(new TypedPos(linkedToken.pos, DataType.INT))
 						));

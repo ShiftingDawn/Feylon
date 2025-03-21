@@ -1,8 +1,8 @@
-package com.shiftingdawn.feylon;
+package com.shiftingdawn.feylon.syscall;
 
 public enum Register {
 
-	RAX, RDI, RSI, RDX;
+	RAX, RDI, RSI, RDX, R10, R8, R9;
 
 	private long data = 0;
 

@@ -1,5 +1,6 @@
 package com.shiftingdawn.feylon;
 
+import com.shiftingdawn.feylon.ins.Instruction;
 import com.shiftingdawn.feylon.lang.AssembledProgram;
 
 public class Simulator {

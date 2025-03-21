@@ -1,8 +1,6 @@
 package com.shiftingdawn.feylon.syscall;
 
 import com.shiftingdawn.feylon.Memory;
-import com.shiftingdawn.feylon.Register;
-import com.shiftingdawn.feylon.SysCall;
 
 public class WriteSysCall implements SysCall {
 

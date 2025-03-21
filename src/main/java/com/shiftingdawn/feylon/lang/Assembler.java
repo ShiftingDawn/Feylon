@@ -1,10 +1,7 @@
 package com.shiftingdawn.feylon.lang;
 
-import com.shiftingdawn.feylon.Instruction;
 import com.shiftingdawn.feylon.OrderedList;
 import com.shiftingdawn.feylon.ins.*;
-import com.shiftingdawn.feylon.ins.jump.*;
-import com.shiftingdawn.feylon.ins.mem.*;
 
 final class Assembler {
 
@@ -15,20 +12,20 @@ final class Assembler {
 		while (!tokens.isEmpty()) {
 			final LinkedToken token = tokens.pop();
 			switch (token.type) {
-				case PUSH_INT -> ctx.result.append(new PushIntInstruction((int) token.data));
-				case PUSH_BOOL -> ctx.result.append(new PushBooleanInstruction((boolean) token.data));
-				case PUSH_STRING -> ctx.result.append(new PushStringInstruction((String) token.data));
-				case PUSH_POINTER -> ctx.result.append(new PushPointerInstruction((int) token.data));
+				case PUSH_INT -> ctx.result.append(StackInstructions.push((int) token.data));
+				case PUSH_BOOL -> ctx.result.append(StackInstructions.push((boolean) token.data ? 1 : 0));
+				case PUSH_STRING -> ctx.result.append(StackInstructions.push((String) token.data));
+				case PUSH_POINTER -> ctx.result.append(StackInstructions.push((int) token.data));
 				case INTRINSIC -> Assembler.processIntrinsic(ctx, token);
 
-				case FUNCTION -> ctx.result.append(new JumpInstruction((int) token.data - skippedPointerOffset));
-				case CALL -> ctx.result.append(new CallFunctionInstruction(linkerContext.functions.get(token.txt).pointer - skippedPointerOffset + 1, (token.selfPointer - skippedPointerOffset) + 1));
-				case RETURN -> ctx.result.append(new ReturnInstruction());
+				case FUNCTION -> ctx.result.append(ControlFlowInstructions.jump((int) token.data - skippedPointerOffset));
+				case CALL -> ctx.result.append(ControlFlowInstructions.call(linkerContext.functions.get(token.txt).pointer - skippedPointerOffset + 1, (token.selfPointer - skippedPointerOffset) + 1));
+				case RETURN -> ctx.result.append(ControlFlowInstructions::ret);
 
-				case JUMP -> ctx.result.append(new JumpInstruction((int) token.data - skippedPointerOffset));
-				case JUMP_EQ -> ctx.result.append(new JumpIfInstruction((int) token.data - skippedPointerOffset));
-				case JUMP_NEQ -> ctx.result.append(new JumpIfNotInstruction((int) token.data - skippedPointerOffset));
-				case DO -> ctx.result.append(new DoInstruction((int) token.data - skippedPointerOffset));
+				case JUMP -> ctx.result.append(ControlFlowInstructions.jump((int) token.data - skippedPointerOffset));
+				case JUMP_EQ -> ctx.result.append(ControlFlowInstructions.jumpEq((int) token.data - skippedPointerOffset));
+				case JUMP_NEQ -> ctx.result.append(ControlFlowInstructions.jumpNeq((int) token.data - skippedPointerOffset));
+				case DO -> ctx.result.append(ControlFlowInstructions.jumpNeq((int) token.data - skippedPointerOffset));
 
 				default -> throw new AssertionError("Encountered unhandled token: " + token.type);
 			}
@@ -38,40 +35,37 @@ final class Assembler {
 
 	private static void processIntrinsic(final AssemblerContext ctx, final LinkedToken token) {
 		ctx.result.append(switch ((Intrinsics) token.data) {
-			case TRUE -> new PushBooleanInstruction(true);
-			case FALSE -> new PushBooleanInstruction(false);
-			case ADD -> new AddInstruction();
-			case SUBTRACT -> new SubtractInstruction();
-			case MULTIPLY -> new MultiplyInstruction();
-			case DIVIDE -> new DivideInstruction();
-			case MODULO -> new ModInstruction();
-			case EQUALS -> new EqualsInstruction();
-			case NOT_EQUALS -> new NotEqualsInstruction();
-			case LESS -> new LessInstruction();
-			case GREATER -> new GreaterInstruction();
-			case LESS_OR_EQUAL -> new LessEqualInstruction();
-			case GREATER_OR_EQUAL -> new GreaterEqualInstruction();
-			case SHIFT_LEFT -> new BitShiftLeftInstruction();
-			case SHIFT_RIGHT -> new BitShiftRightInstruction();
-			case BITWISE_AND -> new BitwiseAndInstruction();
-			case BITWISE_OR -> new BitwiseOrInstruction();
-			case BITWISE_XOR -> new BitwiseXorInstruction();
-			case CAST_INTEGER -> throw new AssertionError();
-			case CAST_BOOLEAN -> throw new AssertionError();
-			case CAST_STRING -> throw new AssertionError();
-			case CAST_POINTER -> throw new AssertionError();
-			case DUMP -> new DumpInstruction();
-			case POP -> new PopInstruction();
-			case DUP -> new DupInstruction();
-			case SWAP -> new SwapInstruction();
-			case OVER -> new OverInstruction();
-			case ROT -> new RotInstruction();
-			case STORE -> new MemStore8Instruction();
-			case LOAD -> new MemLoad8Instruction();
-			case STORE_16 -> new MemStore16Instruction();
-			case LOAD_16 -> new MemLoad16Instruction();
-			case STORE_32 -> new MemStore32Instruction();
-			case LOAD_32 -> new MemLoad32Instruction();
+			case ADD -> (Instruction) ArithmeticInstructions::add;
+			case SUBTRACT -> (Instruction) ArithmeticInstructions::subtract;
+			case MULTIPLY -> (Instruction) ArithmeticInstructions::multiply;
+			case DIVIDE -> (Instruction) ArithmeticInstructions::divide;
+			case MODULO -> (Instruction) ArithmeticInstructions::mod;
+			case SHIFT_LEFT -> (Instruction) ArithmeticInstructions::bitShiftLeft;
+			case SHIFT_RIGHT -> (Instruction) ArithmeticInstructions::bitShiftRight;
+			case BITWISE_AND -> (Instruction) ArithmeticInstructions::bitwiseAnd;
+			case BITWISE_OR -> (Instruction) ArithmeticInstructions::bitwiseOr;
+			case BITWISE_XOR -> (Instruction) ArithmeticInstructions::bitwiseXor;
+
+			case EQUALS -> (Instruction) ArithmeticInstructions::equals;
+			case NOT_EQUALS -> (Instruction) ArithmeticInstructions::notEquals;
+			case LESS -> (Instruction) ArithmeticInstructions::less;
+			case GREATER -> (Instruction) ArithmeticInstructions::greater;
+			case LESS_OR_EQUAL -> (Instruction) ArithmeticInstructions::lessEqual;
+			case GREATER_OR_EQUAL -> (Instruction) ArithmeticInstructions::greaterEqual;
+
+			case DUMP -> (Instruction) StackInstructions::dump;
+			case POP -> (Instruction) StackInstructions::pop;
+			case DUP -> (Instruction) StackInstructions::dup;
+			case SWAP -> (Instruction) StackInstructions::swap;
+			case OVER -> (Instruction) StackInstructions::over;
+			case ROT -> (Instruction) StackInstructions::rot;
+
+			case STORE -> (Instruction) MemoryInstructions::store8;
+			case LOAD -> (Instruction) MemoryInstructions::load8;
+			case STORE_16 -> (Instruction) MemoryInstructions::store16;
+			case LOAD_16 -> (Instruction) MemoryInstructions::load16;
+			case STORE_32 -> (Instruction) MemoryInstructions::store32;
+			case LOAD_32 -> (Instruction) MemoryInstructions::load32;
 		});
 	}
 }

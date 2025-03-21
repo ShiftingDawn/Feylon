@@ -2,21 +2,11 @@ package com.shiftingdawn.feylon.lang;
 
 public enum Intrinsics {
 
-	TRUE("true"),
-	FALSE("false"),
-
 	ADD("+"),
 	SUBTRACT("-"),
 	MULTIPLY("*"),
 	DIVIDE("/"),
 	MODULO("%"),
-
-	EQUALS("="),
-	NOT_EQUALS("!="),
-	LESS("<"),
-	GREATER(">"),
-	LESS_OR_EQUAL("<="),
-	GREATER_OR_EQUAL(">="),
 
 	SHIFT_LEFT("<<"),
 	SHIFT_RIGHT(">>"),
@@ -24,10 +14,12 @@ public enum Intrinsics {
 	BITWISE_OR("|"),
 	BITWISE_XOR("^"),
 
-	CAST_INTEGER("cast(int)", false),
-	CAST_BOOLEAN("cast(bool)", false),
-	CAST_STRING("cast(str)", false),
-	CAST_POINTER("cast(ptr)", false),
+	EQUALS("="),
+	NOT_EQUALS("!="),
+	LESS("<"),
+	GREATER(">"),
+	LESS_OR_EQUAL("<="),
+	GREATER_OR_EQUAL(">="),
 
 	DUMP("dump"),
 	POP("pop"),
@@ -44,15 +36,9 @@ public enum Intrinsics {
 	LOAD_32("load32");
 
 	public final String textValue;
-	public final boolean hasInstruction;
-
-	Intrinsics(final String textValue, final boolean hasInstruction) {
-		this.textValue = textValue;
-		this.hasInstruction = hasInstruction;
-	}
 
 	Intrinsics(final String textValue) {
-		this(textValue, true);
+		this.textValue = textValue;
 	}
 
 	public static Intrinsics getByText(final String str) {
