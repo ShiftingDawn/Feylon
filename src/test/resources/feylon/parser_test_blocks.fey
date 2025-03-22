@@ -1,4 +1,4 @@
-//1 2 3 4 5 6 7 8 9 10 11
+//1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
 
 true if
     1 dump
@@ -40,3 +40,19 @@ function test4(int -> int)
     1 +
 end
 10 test4 dump
+
+function test5(int)
+    dup 1 = if
+        12 dump
+    elseif dup 2 = if
+        13 dump
+    elseif dup 3 = if
+        14 dump
+    elseif dup 4 = if
+        15 dump
+    end pop
+end
+1 test5
+2 test5
+3 test5
+4 test5

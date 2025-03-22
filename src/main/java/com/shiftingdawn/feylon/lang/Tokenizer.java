@@ -65,7 +65,7 @@ final class Tokenizer {
 
 	private static Token parseKeyword(final ParserContext ctx, final OrderedList<LexedToken> lexedTokens, final LexedToken token, final Keywords keyword) {
 		return switch (keyword) {
-			case END -> new Token(token.pos(), TokenType.END, token.content(), null);
+			case END, ELSEIF -> new Token(token.pos(), TokenType.END, token.content(), null);
 			case FUNCTION -> Tokenizer.parseFunction(ctx, lexedTokens, token);
 			case CONST -> {
 				if (lexedTokens.isEmpty()) {
@@ -85,25 +85,25 @@ final class Tokenizer {
 			}
 			case IF -> {
 				if (lexedTokens.isEmpty()) {
-					throw new FeylonException(token.pos(), "Encountered incomplete statement");
+					throw new FeylonException(token.pos(), "Encountered incomplete IF statement");
 				}
 				yield new Token(token.pos(), TokenType.IF, token.content(), null);
 			}
 			case ELSE -> {
 				if (lexedTokens.isEmpty()) {
-					throw new FeylonException(token.pos(), "Encountered incomplete statement");
+					throw new FeylonException(token.pos(), "Encountered incomplete ELSE statement");
 				}
 				yield new Token(token.pos(), TokenType.ELSE, token.content(), null);
 			}
 			case WHILE -> {
 				if (lexedTokens.isEmpty()) {
-					throw new FeylonException(token.pos(), "Encountered incomplete statement");
+					throw new FeylonException(token.pos(), "Encountered incomplete WHILE statement");
 				}
 				yield new Token(token.pos(), TokenType.WHILE, token.content(), null);
 			}
 			case DO -> {
 				if (lexedTokens.isEmpty()) {
-					throw new FeylonException(token.pos(), "Encountered incomplete statement");
+					throw new FeylonException(token.pos(), "Encountered incomplete DO statement");
 				}
 				yield new Token(token.pos(), TokenType.DO, token.content(), null);
 			}

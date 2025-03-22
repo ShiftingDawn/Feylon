@@ -10,6 +10,7 @@ public enum Keywords {
 
 	IF("if"),
 	ELSE("else"),
+	ELSEIF("elseif"),
 	WHILE("while"),
 	DO("do");
 
