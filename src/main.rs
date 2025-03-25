@@ -3,9 +3,10 @@ use std::cmp::PartialEq;
 use std::fmt::{Debug, Display, Formatter, Write};
 
 fn main() {
-    let words = parse_line_into_words(String::from("<generated>"), 0, "1 dump");
+    let words = parse_line_into_words(String::from("<generated>"), 0, "1 2 + dump");
     let tokens = parse_words_into_tokens(words);
     check_types(&tokens, 0);
+    simulate_tokens(tokens);
 }
 
 fn find_char<F>(line: &str, start_pos: usize, predicate: F) -> usize
@@ -305,5 +306,32 @@ fn check_outputs(ctx: &mut Context, allowed_overflow: usize) {
             eprintln!("{}: INFO: Type '{}'", missing.word, missing.typ);
         }
         std::process::exit(1);
+    }
+}
+
+fn simulate_tokens(tokens: Vec<Token>) {
+    let mut stack: Vec<i32> = vec![];
+    let mut ptr: usize = 0;
+    while ptr < tokens.len() {
+        let op = &tokens[ptr];
+        match &op.op {
+            Op::PushInt(x) => {
+                stack.push(*x);
+                ptr += 1;
+            }
+            Op::Intrinsic(intrinsic) => {
+                match intrinsic {
+                    Intrinsic::Dump => {
+                        print!("{}", stack.pop().unwrap());
+                    }
+                    Intrinsic::Add => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(a + b);
+                    }
+                }
+                ptr += 1;
+            }
+        }
     }
 }
