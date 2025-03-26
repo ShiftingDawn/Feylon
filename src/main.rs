@@ -49,11 +49,15 @@ fn main() {
                                         "ERROR: Tested program exited with code {} while expected code is {}",
                                         code, test_file.exit_code
                                     );
+                                    eprintln!("ERROR: STDERR: {}", String::from_utf8(output.stderr).unwrap());
+                                    eprintln!("ERROR: STDOUT: {}", String::from_utf8(output.stdout).unwrap());
                                     std::process::exit(1);
                                 }
                             }
                             None => {
                                 eprintln!("ERROR: Tested program exited unexpectedly");
+                                eprintln!("ERROR: STDERR: {}", String::from_utf8(output.stderr).unwrap());
+                                eprintln!("ERROR: STDOUT: {}", String::from_utf8(output.stdout).unwrap());
                                 std::process::exit(1);
                             }
                         }

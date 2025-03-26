@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
     INT,
+    PTR,
 }
 
 impl Display for DataType {
@@ -71,10 +72,7 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             ctx,
                             vec![Signature {
                                 ins: a,
-                                outs: vec![TypedPos {
-                                    word: op.word.clone(),
-                                    typ: DataType::INT,
-                                }],
+                                outs: vec![tp(&op.word, DataType::INT)],
                             }],
                         );
                     }
@@ -85,10 +83,7 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             ctx,
                             vec![Signature {
                                 ins: a,
-                                outs: vec![TypedPos {
-                                    word: op.word.clone(),
-                                    typ: DataType::INT,
-                                }],
+                                outs: vec![tp(&op.word, DataType::INT)],
                             }],
                         );
                     }
@@ -99,10 +94,7 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             ctx,
                             vec![Signature {
                                 ins: a,
-                                outs: vec![TypedPos {
-                                    word: op.word.clone(),
-                                    typ: DataType::INT,
-                                }],
+                                outs: vec![tp(&op.word, DataType::INT)],
                             }],
                         );
                     }
@@ -113,10 +105,7 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             ctx,
                             vec![Signature {
                                 ins: a,
-                                outs: vec![TypedPos {
-                                    word: op.word.clone(),
-                                    typ: DataType::INT,
-                                }],
+                                outs: vec![tp(&op.word, DataType::INT)],
                             }],
                         );
                     }
@@ -127,10 +116,37 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             ctx,
                             vec![Signature {
                                 ins: a,
-                                outs: vec![TypedPos {
-                                    word: op.word.clone(),
-                                    typ: DataType::INT,
-                                }],
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Mem => {
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: vec![],
+                                outs: vec![tp(&op.word, DataType::PTR)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::MemSet => {
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: vec![tp(&op.word, DataType::PTR), tp(&op.word, DataType::INT)],
+                                outs: vec![],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::MemGet => {
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: vec![tp(&op.word, DataType::PTR)],
+                                outs: vec![tp(&op.word, DataType::INT)],
                             }],
                         );
                     }
@@ -240,5 +256,12 @@ fn check_outputs(ctx: &mut Context, allowed_overflow: usize) {
             eprintln!("{}: INFO: Type '{}'", missing.word, missing.typ);
         }
         std::process::exit(1);
+    }
+}
+
+fn tp(word: &lexer::Word, typ: DataType) -> TypedPos {
+    TypedPos {
+        word: word.clone(),
+        typ,
     }
 }

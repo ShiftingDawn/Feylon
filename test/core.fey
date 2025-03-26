@@ -4,3 +4,6 @@
 2 2 * dump      // 4
 50 10 / dump    // 5
 14 8 % dump     // 6
+
+mem 7 memset    // Nothing
+mem memget dump // 7

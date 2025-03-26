@@ -20,6 +20,10 @@ pub enum Intrinsic {
     Multiply,
     Divide,
     Modulo,
+    
+    Mem,
+    MemSet,
+    MemGet,
 }
 
 impl Display for Op {
@@ -72,6 +76,10 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
         "*" => Some(Intrinsic::Multiply),
         "/" => Some(Intrinsic::Divide),
         "%" => Some(Intrinsic::Modulo),
+
+        "mem" => Some(Intrinsic::Mem),
+        "memset" => Some(Intrinsic::MemSet),
+        "memget" => Some(Intrinsic::MemGet),
 
         _ => None,
     }
