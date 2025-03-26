@@ -78,6 +78,62 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                             }],
                         );
                     }
+                    tokenizer::Intrinsic::Subtract => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![TypedPos {
+                                    word: op.word.clone(),
+                                    typ: DataType::INT,
+                                }],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Multiply => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![TypedPos {
+                                    word: op.word.clone(),
+                                    typ: DataType::INT,
+                                }],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Divide => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![TypedPos {
+                                    word: op.word.clone(),
+                                    typ: DataType::INT,
+                                }],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Modulo => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![TypedPos {
+                                    word: op.word.clone(),
+                                    typ: DataType::INT,
+                                }],
+                            }],
+                        );
+                    }
                 };
                 ctx.ptr += 1;
             }

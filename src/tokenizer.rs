@@ -12,6 +12,16 @@ pub enum Op {
     Intrinsic(Intrinsic),
 }
 
+pub enum Intrinsic {
+    Dump,
+
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+    Modulo,
+}
+
 impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let txt = match self { 
@@ -21,12 +31,6 @@ impl Display for Op {
         };
         write!(f, "{}", txt)
     }
-}
-
-pub enum Intrinsic {
-    Dump,
-
-    Add,
 }
 
 pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
@@ -64,6 +68,10 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
         "dump" => Some(Intrinsic::Dump),
 
         "+" => Some(Intrinsic::Add),
+        "-" => Some(Intrinsic::Subtract),
+        "*" => Some(Intrinsic::Multiply),
+        "/" => Some(Intrinsic::Divide),
+        "%" => Some(Intrinsic::Modulo),
 
         _ => None,
     }

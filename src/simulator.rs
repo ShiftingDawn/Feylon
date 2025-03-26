@@ -20,6 +20,26 @@ pub fn simulate_tokens(tokens: Vec<tokenizer::Token>) {
                         let b = stack.pop().unwrap();
                         stack.push(a + b);
                     }
+                    tokenizer::Intrinsic::Subtract => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b - a);
+                    }
+                    tokenizer::Intrinsic::Multiply => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(a * b);
+                    }
+                    tokenizer::Intrinsic::Divide => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b / a);
+                    }
+                    tokenizer::Intrinsic::Modulo => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b % a);
+                    }
                 }
                 ptr += 1;
             }
