@@ -7,3 +7,5 @@
 
 mem 7 memset    // Nothing
 mem memget dump // 7
+
+"Hello, Feylon!" dump dump      //65536 14

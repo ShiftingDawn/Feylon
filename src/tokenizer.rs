@@ -1,5 +1,5 @@
-use std::fmt::{Display, Formatter};
 use crate::lexer;
+use std::fmt::{Display, Formatter};
 
 pub struct Token {
     pub word: lexer::Word,
@@ -8,6 +8,7 @@ pub struct Token {
 
 pub enum Op {
     PushInt(i32),
+    PushString(String),
 
     Intrinsic(Intrinsic),
 }
@@ -20,7 +21,7 @@ pub enum Intrinsic {
     Multiply,
     Divide,
     Modulo,
-    
+
     Mem,
     MemSet,
     MemGet,
@@ -28,9 +29,10 @@ pub enum Intrinsic {
 
 impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let txt = match self { 
+        let txt = match self {
             Op::PushInt(_) => "PUSH_INT",
-            
+            Op::PushString(_) => "PUSH_STRING",
+
             Op::Intrinsic(_) => "INTRINSIC",
         };
         write!(f, "{}", txt)
@@ -49,6 +51,14 @@ pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
                 continue;
             }
             Err(_) => {}
+        }
+        if word.txt.starts_with('"') && word.txt.ends_with('"') {
+            let content = word.txt.clone();
+            result.push(Token {
+                word,
+                op: Op::PushString(String::from(&content[1..content.len() - 1])),
+            });
+            continue;
         }
         match get_intrinsic_by_word(&word.txt) {
             Some(intrinsic) => {

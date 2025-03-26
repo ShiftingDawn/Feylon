@@ -21,7 +21,7 @@ pub struct Word {
 
 impl Display for Word {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}", self.file, self.row, self.col)
+        write!(f, "{}:{}:{}", self.file, self.row + 1, self.col + 1)
     }
 }
 
@@ -46,7 +46,7 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
         row += 1;
         let mut pos = find_char(&line, 0, |x| !x.is_whitespace());
         while pos < line.len() {
-            if line.chars().next().unwrap() == '\'' {
+            if line.chars().nth(pos).unwrap() == '\'' {
                 let end_pos = find_char(&line, pos + 2, |x| x == '\'');
                 if end_pos >= line.len()
                     || (line.chars().nth(pos + 1).unwrap() != '\\' && end_pos - pos >= 3)
@@ -69,7 +69,7 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
                 });
                 pos = find_char(&line, end_pos + 1, |x| !x.is_whitespace());
                 continue;
-            } else if line.chars().next().unwrap() == '"' {
+            } else if line.chars().nth(pos).unwrap() == '"' {
                 let end_pos = find_char(&line, pos + 1, |x| x == '"');
                 if end_pos >= line.len() {
                     let start_row = row;
@@ -90,7 +90,7 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
                                 col: start_col as u32,
                                 txt: string_buffer.join("\n"),
                             });
-                            pos = find_char(line, end_pos + 2, |x| !x.is_whitespace());
+                            pos = find_char(&line, end_pos + 2, |x| !x.is_whitespace());
                             break;
                         }
                     }
@@ -101,7 +101,7 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
                         col: pos as u32,
                         txt: line[pos..end_pos + 1].to_string(),
                     });
-                    pos = find_char(line, end_pos + 2, |x| !x.is_whitespace());
+                    pos = find_char(&line, end_pos + 2, |x| !x.is_whitespace());
                     continue;
                 }
             }
@@ -124,7 +124,7 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
                 col: pos as u32,
                 txt: token_text,
             });
-            pos = find_char(line, end_pos + 1, |x| !x.is_whitespace());
+            pos = find_char(&line, end_pos + 1, |x| !x.is_whitespace());
         }
     }
     result

@@ -1,5 +1,6 @@
 use crate::{lexer, tokenizer};
 use std::fmt::{Display, Formatter};
+use crate::checker::DataType::{INT, PTR};
 
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
@@ -50,6 +51,11 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                     word: op.word.clone(),
                     typ: DataType::INT,
                 });
+                ctx.ptr += 1;
+            }
+            tokenizer::Op::PushString(_) => {
+                ctx.stack.push(tp(&op.word, INT));
+                ctx.stack.push(tp(&op.word, PTR));
                 ctx.ptr += 1;
             }
             tokenizer::Op::Intrinsic(intrinsic) => {
@@ -210,6 +216,9 @@ fn check_signature(op: &tokenizer::Token, ctx: &mut Context, sigs: Vec<Signature
             continue;
         }
         ctx.stack.clear();
+        for stack_type in stack {
+            ctx.stack.push(stack_type);
+        }
         for output_type in signature.outs {
             ctx.stack.push(output_type);
         }
