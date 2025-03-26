@@ -1,4 +1,4 @@
-use crate::tokenizer::Token;
+use crate::linker::LinkerContext;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 
@@ -7,6 +7,7 @@ mod lexer;
 mod simulator;
 mod test;
 mod tokenizer;
+mod linker;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
@@ -65,11 +66,12 @@ pub fn read_file_contents(path: &str) -> io::Result<Vec<String>> {
     Ok(lines)
 }
 
-fn compile_program(file: String, lines: Vec<String>) -> Vec<Token> {
+fn compile_program(file: String, lines: Vec<String>) -> LinkerContext {
     let words = lexer::parse_lines_into_words(file, lines);
     let tokens = tokenizer::parse_words_into_tokens(words);
-    checker::check_types(&tokens, 0);
-    tokens
+    let linked = linker::link_tokens(tokens);
+    checker::check_types(&linked, 0);
+    linked
 }
 
 fn run_builtin_test() {

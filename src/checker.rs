@@ -1,6 +1,5 @@
-use crate::{lexer, tokenizer};
+use crate::{lexer, linker, tokenizer};
 use std::fmt::{Display, Formatter};
-use crate::checker::DataType::{INT, PTR};
 
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
@@ -31,7 +30,8 @@ struct Signature {
     outs: Vec<TypedPos>,
 }
 
-pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) {
+pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usize) {
+    let ops = &linker_context.result;
     let mut contexts: Vec<Context> = vec![Context {
         stack: vec![],
         ptr: 0,
@@ -54,8 +54,8 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                 ctx.ptr += 1;
             }
             tokenizer::Op::PushString(_) => {
-                ctx.stack.push(tp(&op.word, INT));
-                ctx.stack.push(tp(&op.word, PTR));
+                ctx.stack.push(tp(&op.word, DataType::INT));
+                ctx.stack.push(tp(&op.word, DataType::PTR));
                 ctx.ptr += 1;
             }
             tokenizer::Op::Intrinsic(intrinsic) => {
@@ -159,11 +159,14 @@ pub(crate) fn check_types(ops: &Vec<tokenizer::Token>, allowed_overflow: usize) 
                 };
                 ctx.ptr += 1;
             }
+            tokenizer::Op::Keyword(keyword) => {
+                todo!();
+            }
         }
     }
 }
 
-fn check_arity(count: usize, ctx: &mut Context, op: &tokenizer::Token) -> Vec<TypedPos> {
+fn check_arity(count: usize, ctx: &mut Context, op: &linker::LinkedToken) -> Vec<TypedPos> {
     if count > ctx.stack.len() {
         eprintln!(
             "{}: ERROR: Not enough arguments were provided for '{}'. Expected {} but got {}",
@@ -181,7 +184,7 @@ fn check_arity(count: usize, ctx: &mut Context, op: &tokenizer::Token) -> Vec<Ty
     result
 }
 
-fn check_signature(op: &tokenizer::Token, ctx: &mut Context, sigs: Vec<Signature>) {
+fn check_signature(op: &linker::LinkedToken, ctx: &mut Context, sigs: Vec<Signature>) {
     let mut exit = false;
     'OUTER: for signature in sigs {
         let mut inputs = signature.ins;

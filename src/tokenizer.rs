@@ -7,10 +7,11 @@ pub struct Token {
 }
 
 pub enum Op {
-    PushInt(i32),
+    PushInt(u32),
     PushString(String),
 
     Intrinsic(Intrinsic),
+    Keyword(Keyword),
 }
 
 pub enum Intrinsic {
@@ -27,6 +28,12 @@ pub enum Intrinsic {
     MemGet,
 }
 
+pub enum Keyword {
+    END,
+    IF,
+    ELSE,
+}
+
 impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let txt = match self {
@@ -34,6 +41,7 @@ impl Display for Op {
             Op::PushString(_) => "PUSH_STRING",
 
             Op::Intrinsic(_) => "INTRINSIC",
+            Op::Keyword(_) => "KEYWORD",
         };
         write!(f, "{}", txt)
     }
@@ -42,7 +50,7 @@ impl Display for Op {
 pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
     let mut result = vec![];
     for word in words {
-        match word.txt.parse::<i32>() {
+        match word.txt.parse::<u32>() {
             Ok(x) => {
                 result.push(Token {
                     word,
@@ -70,6 +78,16 @@ pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
             }
             None => {}
         }
+        match get_keyword_by_word(&word.txt) {
+            Some(keyword) => {
+                result.push(Token {
+                    word,
+                    op: Op::Keyword(keyword),
+                });
+                continue;
+            }
+            None => {}
+        }
 
         eprintln!("Error while parsing word: {:?}", word);
         std::process::exit(1);
@@ -90,6 +108,17 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
         "mem" => Some(Intrinsic::Mem),
         "memset" => Some(Intrinsic::MemSet),
         "memget" => Some(Intrinsic::MemGet),
+
+        _ => None,
+    }
+}
+
+fn get_keyword_by_word(word: &str) -> Option<Keyword> {
+    match word {
+        "end" => Some(Keyword::END),
+
+        "if" => Some(Keyword::IF),
+        "else" => Some(Keyword::ELSE),
 
         _ => None,
     }

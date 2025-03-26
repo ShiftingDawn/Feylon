@@ -1,26 +1,28 @@
+use crate::linker;
 use crate::tokenizer;
 
 const MEM_OFFSET: usize = 65536;
 
-pub fn simulate_tokens(tokens: Vec<tokenizer::Token>) {
-    let mut stack: Vec<i32> = vec![];
-    let mut memory = [0; 131072];
+pub fn simulate_tokens(linker_context: linker::LinkerContext) {
+    let mut stack: Vec<u32> = vec![];
+    let mut memory: [u8; 131072] = [0; 131072];
     let mut string_ptr = 0;
     let mut program_counter: usize = 0;
-    while program_counter < tokens.len() {
-        let op = &tokens[program_counter];
+
+    while program_counter < linker_context.result.len() {
+        let op = &linker_context.result[program_counter];
         match &op.op {
             tokenizer::Op::PushInt(x) => {
                 stack.push(*x);
                 program_counter += 1;
             }
             tokenizer::Op::PushString(x) => {
-                let strlen = (*x).len();
-                stack.push(strlen as i32);
+                let str_as_chars = x.as_bytes();
+                let strlen = str_as_chars.len();
                 let addr = MEM_OFFSET + string_ptr;
-                stack.push(addr as i32);
-                let str_as_chars: Vec<i32> = x.chars().map(|c| c as i32).collect();
-                memory[addr..addr + str_as_chars.len()].copy_from_slice(&str_as_chars);
+                memory[addr..addr + strlen].copy_from_slice(str_as_chars);
+                stack.push(strlen as u32);
+                stack.push(addr as u32);
                 string_ptr += strlen;
                 program_counter += 1;
             }
@@ -60,15 +62,18 @@ pub fn simulate_tokens(tokens: Vec<tokenizer::Token>) {
                     tokenizer::Intrinsic::MemSet => {
                         let a = stack.pop().unwrap();
                         let ptr = stack.pop().unwrap();
-                        memory[ptr as usize] = a;
+                        memory[ptr as usize] = a as u8;
                     }
                     tokenizer::Intrinsic::MemGet => {
                         let ptr = stack.pop().unwrap();
                         let x = memory[ptr as usize];
-                        stack.push(x);
+                        stack.push(x as u32);
                     }
                 }
                 program_counter += 1;
+            }
+            tokenizer::Op::Keyword(keyword) => {
+                todo!();
             }
         }
     }
