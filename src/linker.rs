@@ -17,7 +17,7 @@ pub struct LinkerContext {
     tokens: Vec<tokenizer::Token>,
     pub result: Vec<LinkedToken>,
     call_stack: Vec<usize>,
-    mem_size: usize,
+    pub mem_size: usize,
     pointer: usize,
 }
 

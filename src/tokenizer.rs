@@ -47,6 +47,35 @@ impl Display for Op {
     }
 }
 
+impl Display for Intrinsic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let txt = match self {
+            Intrinsic::Dump => "DUMP",
+            Intrinsic::Add => "ADD",
+            Intrinsic::Subtract => "SUBTRACT",
+            Intrinsic::Multiply => "MULTIPLY",
+            Intrinsic::Divide => "DIVIDE",
+            Intrinsic::Modulo => "MODULO",
+            Intrinsic::Mem => "MEM",
+
+            Intrinsic::MemSet => "MEMSET",
+            Intrinsic::MemGet => "MEMGET",
+        };
+        write!(f, "{}", txt)
+    }
+}
+
+
+impl Display for Keyword {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let txt = match self {
+            Keyword::END => "END",
+            Keyword::IF => "IF",
+            Keyword::ELSE => "ELSE",
+        };
+        write!(f, "{}", txt)
+    }
+}
 pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
     let mut result = vec![];
     for word in words {

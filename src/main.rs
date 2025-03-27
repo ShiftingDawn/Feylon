@@ -8,6 +8,7 @@ mod simulator;
 mod test;
 mod tokenizer;
 mod linker;
+mod bytewriter;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
@@ -22,6 +23,17 @@ fn main() {
             Ok(lines) => {
                 let program = compile_program(last_arg.clone(), lines);
                 simulator::simulate_tokens(program);
+                std::process::exit(0);
+            }
+            Err(err) => {
+                eprintln!("ERROR: Could not load program {}!", last_arg);
+                eprintln!("ERROR: {}", err);
+            }
+        },
+        "compile" => match read_file_contents(&last_arg) {
+            Ok(lines) => {
+                let program = compile_program(last_arg.clone(), lines);
+                bytewriter::write_parsed_program_to_file(&last_arg, &program);
                 std::process::exit(0);
             }
             Err(err) => {
@@ -49,6 +61,8 @@ fn usage(self_path: &str) {
     println!("Usage: {} <COMMAND> [OPTIONS] <file_path>", self_path);
     println!("Available commands:");
     println!("  simulate        Interpret and simulate the given program");
+    println!("    Available options:");
+    println!("  compile         Compile the given program and write it to disk");
     println!("    Available options:");
     println!("  test            Interpret and test the given program");
     println!("    Available options:");
