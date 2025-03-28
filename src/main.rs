@@ -2,13 +2,13 @@ use crate::linker::LinkerContext;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 
+mod bytewriter;
 mod checker;
 mod lexer;
+mod linker;
 mod simulator;
 mod test;
 mod tokenizer;
-mod linker;
-mod bytewriter;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
@@ -89,10 +89,7 @@ fn compile_program(file: String, lines: Vec<String>) -> LinkerContext {
 }
 
 fn run_builtin_test() {
-    let tokens = compile_program(
-        String::from("<generated>"),
-        vec![String::from("1 2 + dump")],
-    );
+    let tokens = compile_program(String::from("<generated>"), vec![String::from("1 2 + dump")]);
     checker::check_types(&tokens, 0);
     simulator::simulate_tokens(tokens);
 }

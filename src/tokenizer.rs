@@ -70,10 +70,7 @@ pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
     for word in words {
         match word.txt.parse::<u32>() {
             Ok(x) => {
-                result.push(Token {
-                    word,
-                    op: Op::PushInt(x),
-                });
+                result.push(Token { word, op: Op::PushInt(x) });
                 continue;
             }
             Err(_) => {}

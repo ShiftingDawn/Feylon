@@ -19,10 +19,7 @@ pub fn test_program(self_path: String, file_path: String) {
             match output.status.code() {
                 Some(code) => {
                     if test_file.exit_code != code {
-                        eprintln!(
-                            "ERROR: Tested program exited with code {} while expected code is {}",
-                            code, test_file.exit_code
-                        );
+                        eprintln!("ERROR: Tested program exited with code {} while expected code is {}", code, test_file.exit_code);
                         eprintln!("ERROR: STDERR: {}", String::from_utf8(output.stderr).unwrap());
                         eprintln!("ERROR: STDOUT: {}", String::from_utf8(output.stdout).unwrap());
                         std::process::exit(1);
@@ -38,9 +35,7 @@ pub fn test_program(self_path: String, file_path: String) {
             match test_text_output(&test_file.stdout, output.stdout) {
                 Some((ok, str)) => {
                     if !ok {
-                        eprintln!(
-                            "ERROR: Tested program did not have the same STDOUT as expected"
-                        );
+                        eprintln!("ERROR: Tested program did not have the same STDOUT as expected");
                         eprintln!("Expected: {}", test_file.stdout);
                         eprintln!("Received: {}", str);
                         std::process::exit(1);
@@ -54,9 +49,7 @@ pub fn test_program(self_path: String, file_path: String) {
             match test_text_output(&test_file.stderr, output.stderr) {
                 Some((ok, str)) => {
                     if !ok {
-                        eprintln!(
-                            "ERROR: Tested program did not have the same STDERR as expected"
-                        );
+                        eprintln!("ERROR: Tested program did not have the same STDERR as expected");
                         eprintln!("Expected: {}", test_file.stdout);
                         eprintln!("Received: {}", str);
                         std::process::exit(1);
@@ -82,15 +75,19 @@ fn parse_test_file(file: &str) -> TestFile {
     match read_file_contents(file) {
         Ok(mut contents) => {
             contents.reverse();
-            let exit_code: i32 = contents.pop().unwrap_or_else(|| {
-				eprintln!("ERROR: Could not load program test {}!", file);
-				eprintln!("ERROR: The first line should be an integer representing the expected exit code");
-				std::process::exit(1);
-			}).parse().unwrap_or_else(|_| {
-				eprintln!("ERROR: Could not load program test {}!", file);
-				eprintln!("ERROR: The first line should be an integer representing the expected exit code");
-				std::process::exit(1);
-			});
+            let exit_code: i32 = contents
+                .pop()
+                .unwrap_or_else(|| {
+                    eprintln!("ERROR: Could not load program test {}!", file);
+                    eprintln!("ERROR: The first line should be an integer representing the expected exit code");
+                    std::process::exit(1);
+                })
+                .parse()
+                .unwrap_or_else(|_| {
+                    eprintln!("ERROR: Could not load program test {}!", file);
+                    eprintln!("ERROR: The first line should be an integer representing the expected exit code");
+                    std::process::exit(1);
+                });
             let mut out: Vec<String> = vec![];
             let mut err: Vec<String> = vec![];
             let mut is_stdout = true;

@@ -63,14 +63,7 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                 match intrinsic {
                     tokenizer::Intrinsic::Dump => {
                         let a = check_arity(1, ctx, op);
-                        check_signature(
-                            &op,
-                            ctx,
-                            vec![Signature {
-                                ins: a,
-                                outs: vec![],
-                            }],
-                        );
+                        check_signature(&op, ctx, vec![Signature { ins: a, outs: vec![] }]);
                     }
                     tokenizer::Intrinsic::Add => {
                         let a = check_arity(2, ctx, op);
@@ -240,10 +233,7 @@ fn check_signature(op: &linker::LinkedToken, ctx: &mut Context, sigs: Vec<Signat
             args += 1;
         }
         if stack.len() < inputs.len() {
-            eprintln!(
-                "{}: ERROR: Not enough arguments were provided for '{}' '{}'.",
-                op.word, op.op, op.word.txt
-            );
+            eprintln!("{}: ERROR: Not enough arguments were provided for '{}' '{}'.", op.word, op.op, op.word.txt);
             eprintln!("{}: INFO: Missing arguments:", op.word);
             while !inputs.is_empty() {
                 let missing = inputs.pop().unwrap();
@@ -271,32 +261,20 @@ fn check_outputs(ctx: &mut Context, allowed_overflow: usize) {
         let expected = ctx.outs.pop().unwrap();
         let actual = ctx.stack.pop().unwrap();
         if expected.typ != actual.typ {
-            eprintln!(
-                "{}: ERROR: Unexpected type '{}' placed on the stack.",
-                actual.word, actual.typ
-            );
-            eprintln!(
-                "{}: INFO: Expected type was '{}' was found here",
-                expected.word, expected.typ
-            );
+            eprintln!("{}: ERROR: Unexpected type '{}' placed on the stack.", actual.word, actual.typ);
+            eprintln!("{}: INFO: Expected type was '{}' was found here", expected.word, expected.typ);
             std::process::exit(1);
         }
     }
     if ctx.stack.len() - allowed_overflow > ctx.outs.len() {
-        eprintln!(
-            "{}: ERROR: Found unhandled data on the stack.",
-            ctx.stack.last().unwrap().word
-        );
+        eprintln!("{}: ERROR: Found unhandled data on the stack.", ctx.stack.last().unwrap().word);
         while !ctx.stack.is_empty() {
             let unexpected = ctx.stack.pop().unwrap();
             eprintln!("{}: INFO: Type '{}'", unexpected.word, unexpected.typ);
         }
         std::process::exit(1);
     } else if ctx.stack.len() < ctx.outs.len() {
-        eprintln!(
-            "{}: ERROR: Missing expected data on the stack:",
-            ctx.outs.last().unwrap().word
-        );
+        eprintln!("{}: ERROR: Missing expected data on the stack:", ctx.outs.last().unwrap().word);
         while !ctx.outs.is_empty() {
             let missing = ctx.outs.pop().unwrap();
             eprintln!("{}: INFO: Type '{}'", missing.word, missing.typ);
@@ -306,8 +284,5 @@ fn check_outputs(ctx: &mut Context, allowed_overflow: usize) {
 }
 
 fn tp(word: &lexer::Word, typ: DataType) -> TypedPos {
-    TypedPos {
-        word: word.clone(),
-        typ,
-    }
+    TypedPos { word: word.clone(), typ }
 }

@@ -48,16 +48,9 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
         while pos < line.len() {
             if line.chars().nth(pos).unwrap() == '\'' {
                 let end_pos = find_char(&line, pos + 2, |x| x == '\'');
-                if end_pos >= line.len()
-                    || (line.chars().nth(pos + 1).unwrap() != '\\' && end_pos - pos >= 3)
-                    || (line.chars().nth(pos + 1).unwrap() == '\\' && end_pos - pos >= 4)
+                if end_pos >= line.len() || (line.chars().nth(pos + 1).unwrap() != '\\' && end_pos - pos >= 3) || (line.chars().nth(pos + 1).unwrap() == '\\' && end_pos - pos >= 4)
                 {
-                    eprintln!(
-                        "{}:{}:{}: ERROR: Encountered invalid character literal",
-                        file,
-                        row + 1,
-                        pos + 1
-                    );
+                    eprintln!("{}:{}:{}: ERROR: Encountered invalid character literal", file, row + 1, pos + 1);
                     std::process::exit(1);
                 }
                 let val = line[pos..end_pos].chars().nth(0).unwrap();
