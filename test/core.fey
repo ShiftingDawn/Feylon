@@ -10,5 +10,11 @@ mem memget dump // 7
 
 "Hello, Feylon!" dump dump      //65536 14
 
-1 if 69 dump else 420 dump end  //69
-0 if 69 dump else 420 dump end  //420
+true dump   // 1
+false dump  // 0
+
+true if 69 dump else 420 dump end  //69
+false if 69 dump else 420 dump end  //420
+
+2 2 << dump // 8
+8 2 >> dump // 2

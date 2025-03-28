@@ -1,6 +1,7 @@
 use crate::linker;
 use crate::linker::LinkedTokenData;
 use crate::tokenizer;
+use crate::tokenizer::Intrinsic;
 
 const MEM_OFFSET: usize = 65536;
 
@@ -17,6 +18,10 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 stack.push(*x);
                 program_counter += 1;
             }
+            tokenizer::Op::PushBool(x) => {
+                stack.push(if *x { 1 } else { 0 });
+                program_counter += 1;
+            }
             tokenizer::Op::PushString(x) => {
                 let str_as_chars = x.as_bytes();
                 let strlen = str_as_chars.len();
@@ -29,43 +34,123 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
             }
             tokenizer::Op::Intrinsic(intrinsic) => {
                 match intrinsic {
-                    tokenizer::Intrinsic::Dump => {
+                    Intrinsic::Dump => {
                         print!("{}", stack.pop().unwrap());
                     }
-                    tokenizer::Intrinsic::Add => {
+                    Intrinsic::Drop => {
+                        stack.pop();
+                    }
+                    Intrinsic::Dup => {
+                        let a = stack.last().unwrap().clone();
+                        stack.push(a);
+                    }
+                    Intrinsic::Over => {
+                        let a = stack[stack.len() - 2];
+                        stack.push(a);
+                    }
+                    Intrinsic::Swap => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(a);
+                        stack.push(b);
+                    }
+                    Intrinsic::Rot => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        let c = stack.pop().unwrap();
+                        stack.push(b);
+                        stack.push(c);
+                        stack.push(a);
+                    }
+                    Intrinsic::Add => {
                         let a = stack.pop().unwrap();
                         let b = stack.pop().unwrap();
                         stack.push(a + b);
                     }
-                    tokenizer::Intrinsic::Subtract => {
+                    Intrinsic::Subtract => {
                         let a = stack.pop().unwrap();
                         let b = stack.pop().unwrap();
                         stack.push(b - a);
                     }
-                    tokenizer::Intrinsic::Multiply => {
+                    Intrinsic::Multiply => {
                         let a = stack.pop().unwrap();
                         let b = stack.pop().unwrap();
                         stack.push(a * b);
                     }
-                    tokenizer::Intrinsic::Divide => {
+                    Intrinsic::Divide => {
                         let a = stack.pop().unwrap();
                         let b = stack.pop().unwrap();
                         stack.push(b / a);
                     }
-                    tokenizer::Intrinsic::Modulo => {
+                    Intrinsic::Modulo => {
                         let a = stack.pop().unwrap();
                         let b = stack.pop().unwrap();
                         stack.push(b % a);
                     }
-                    tokenizer::Intrinsic::Mem => {
+                    Intrinsic::ShiftLeft => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b << a);
+                    }
+                    Intrinsic::ShiftRight => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b >> a);
+                    }
+                    Intrinsic::BitAnd => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b & a);
+                    }
+                    Intrinsic::BitOr => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b | a);
+                    }
+                    Intrinsic::BitXor => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(b ^ a);
+                    }
+                    Intrinsic::Equals => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if a == b { 1 } else { 0 });
+                    }
+                    Intrinsic::NotEquals => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if a != b { 1 } else { 0 });
+                    }
+                    Intrinsic::Less => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if b < a { 1 } else { 0 });
+                    }
+                    Intrinsic::Greater => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if b > a { 1 } else { 0 });
+                    }
+                    Intrinsic::LessOrEqual => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if b <= a { 1 } else { 0 });
+                    }
+                    Intrinsic::GreaterOrEqual => {
+                        let a = stack.pop().unwrap();
+                        let b = stack.pop().unwrap();
+                        stack.push(if b >= a { 1 } else { 0 });
+                    }
+                    Intrinsic::Mem => {
                         stack.push(0);
                     }
-                    tokenizer::Intrinsic::MemSet => {
+                    Intrinsic::MemSet => {
                         let a = stack.pop().unwrap();
                         let ptr = stack.pop().unwrap();
                         memory[ptr as usize] = a as u8;
                     }
-                    tokenizer::Intrinsic::MemGet => {
+                    Intrinsic::MemGet => {
                         let ptr = stack.pop().unwrap();
                         let x = memory[ptr as usize];
                         stack.push(x as u32);

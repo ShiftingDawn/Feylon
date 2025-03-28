@@ -63,6 +63,10 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
                 ctx.result.push(new_token);
             }
+            tokenizer::Op::PushBool(_) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+                ctx.result.push(new_token);
+            }
             tokenizer::Op::PushString(_) => {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
                 ctx.result.push(new_token);

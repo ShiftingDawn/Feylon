@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
     INT,
+    BOOL,
     PTR,
 }
 
@@ -59,11 +60,66 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                 ctx.stack.push(tp(&op.word, DataType::PTR));
                 ctx.ptr += 1;
             }
+            tokenizer::Op::PushBool(_) => {
+                ctx.stack.push(TypedPos {
+                    word: op.word.clone(),
+                    typ: DataType::BOOL,
+                });
+                ctx.ptr += 1;
+            }
             tokenizer::Op::Intrinsic(intrinsic) => {
                 match intrinsic {
                     tokenizer::Intrinsic::Dump => {
                         let a = check_arity(1, ctx, op);
                         check_signature(&op, ctx, vec![Signature { ins: a, outs: vec![] }]);
+                    }
+                    tokenizer::Intrinsic::Drop => {
+                        let a = check_arity(1, ctx, op);
+                        check_signature(&op, ctx, vec![Signature { ins: a, outs: vec![] }]);
+                    }
+                    tokenizer::Intrinsic::Dup => {
+                        let a = check_arity(1, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a.clone(),
+                                outs: vec![a[0].clone(), a[0].clone()],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Over => {
+                        let ab = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: ab.clone(),
+                                outs: vec![ab[0].clone(), ab[1].clone(), ab[0].clone()],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Swap => {
+                        let ab = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: ab.clone(),
+                                outs: vec![ab[1].clone(), ab[0].clone()],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Rot => {
+                        let abc = check_arity(3, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: abc.clone(),
+                                outs: vec![abc[1].clone(), abc[2].clone(), abc[0].clone()],
+                            }],
+                        );
                     }
                     tokenizer::Intrinsic::Add => {
                         let a = check_arity(2, ctx, op);
@@ -120,6 +176,127 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                             }],
                         );
                     }
+                    tokenizer::Intrinsic::ShiftLeft => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::ShiftRight => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::BitAnd => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::BitOr => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::BitXor => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::INT)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Equals => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::NotEquals => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Less => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::Greater => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::LessOrEqual => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
+                    tokenizer::Intrinsic::GreaterOrEqual => {
+                        let a = check_arity(2, ctx, op);
+                        check_signature(
+                            &op,
+                            ctx,
+                            vec![Signature {
+                                ins: a,
+                                outs: vec![tp(&op.word, DataType::BOOL)],
+                            }],
+                        );
+                    }
                     tokenizer::Intrinsic::Mem => {
                         check_signature(
                             &op,
@@ -161,7 +338,7 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                     &op,
                     ctx,
                     vec![Signature {
-                        ins: vec![tp(&op.word, DataType::INT)],
+                        ins: vec![tp(&op.word, DataType::BOOL)],
                         outs: vec![],
                     }],
                 );
