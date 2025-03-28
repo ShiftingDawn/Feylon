@@ -1,6 +1,5 @@
 use crate::linker;
 use crate::linker::LinkedTokenData;
-use crate::tokenizer;
 use crate::tokenizer::Intrinsic;
 
 const MEM_OFFSET: usize = 65536;
@@ -13,16 +12,16 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
 
     while program_counter < linker_context.result.len() {
         let op = &linker_context.result[program_counter];
-        match &op.op {
-            tokenizer::Op::PushInt(x) => {
+        match &op.instruction {
+            linker::Instruction::PushInt(x) => {
                 stack.push(*x);
                 program_counter += 1;
             }
-            tokenizer::Op::PushBool(x) => {
+            linker::Instruction::PushBool(x) => {
                 stack.push(if *x { 1 } else { 0 });
                 program_counter += 1;
             }
-            tokenizer::Op::PushString(x) => {
+            linker::Instruction::PushString(x) => {
                 let str_as_chars = x.as_bytes();
                 let strlen = str_as_chars.len();
                 let addr = MEM_OFFSET + string_ptr;
@@ -32,7 +31,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 string_ptr += strlen;
                 program_counter += 1;
             }
-            tokenizer::Op::Intrinsic(intrinsic) => {
+            linker::Instruction::Intrinsic(intrinsic) => {
                 match intrinsic {
                     Intrinsic::Dump => {
                         print!("{}", stack.pop().unwrap());
@@ -158,10 +157,13 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
-            tokenizer::Op::End => panic!(),
-            tokenizer::Op::If => {
+            linker::Instruction::JumpEq | linker::Instruction::JumpNeq => {
                 let flag = stack.pop().unwrap();
-                if flag == 0 {
+                let expected_flag = match &op.instruction {
+                    linker::Instruction::JumpEq => 1,
+                    _ => 0,
+                };
+                if flag == expected_flag {
                     match op.data {
                         LinkedTokenData::JumpAddr(ptr) => {
                             program_counter = ptr;
@@ -172,7 +174,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
-            tokenizer::Op::Else => {
+            linker::Instruction::Jump => {
                 match op.data {
                     LinkedTokenData::JumpAddr(ptr) => {
                         program_counter = ptr;
@@ -181,8 +183,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 continue;
             }
-            tokenizer::Op::While => panic!(),
-            tokenizer::Op::Do => {
+            linker::Instruction::Do => {
                 let flag = stack.pop().unwrap();
                 if flag == 0 {
                     match op.data {

@@ -1,5 +1,5 @@
 use crate::linker;
-use crate::tokenizer;
+use linker::Instruction;
 use std::io::Write;
 
 pub fn write_parsed_program_to_file(input_path: &str, ctx: &linker::LinkerContext) {
@@ -25,12 +25,12 @@ pub fn write_parsed_program_to_file(input_path: &str, ctx: &linker::LinkerContex
 }
 
 fn stringify_op(op: &linker::LinkedToken) -> String {
-    let base: String = match &op.op {
-        tokenizer::Op::PushInt(val) => format!("PUSH_INT({})", val),
-        tokenizer::Op::PushString(val) => format!("PUSH_STRING({})", val),
-        tokenizer::Op::Intrinsic(val) => val.to_string(),
+    let base: String = match &op.instruction {
+        Instruction::PushInt(val) => format!("PUSH_INT({})", val),
+        Instruction::PushString(val) => format!("PUSH_STRING({})", val),
+        Instruction::Intrinsic(val) => val.to_string(),
 
-        _ => op.op.to_string(),
+        _ => op.instruction.to_string(),
     };
     let add: String = match &op.data {
         linker::LinkedTokenData::None => String::from(""),

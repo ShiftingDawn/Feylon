@@ -1,8 +1,7 @@
-use crate::linker::LinkedTokenData;
+use crate::linker::{Instruction, LinkedTokenData};
 use crate::{lexer, linker, tokenizer};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use tokenizer::Op;
 
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
@@ -50,27 +49,27 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
             continue;
         }
         let op = &ops[ctx.ptr];
-        match &op.op {
-            Op::PushInt(_) => {
+        match &op.instruction {
+            Instruction::PushInt(_) => {
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::INT,
                 });
                 ctx.ptr += 1;
             }
-            Op::PushString(_) => {
+            Instruction::PushString(_) => {
                 ctx.stack.push(tp(&op.word, DataType::INT));
                 ctx.stack.push(tp(&op.word, DataType::PTR));
                 ctx.ptr += 1;
             }
-            Op::PushBool(_) => {
+            Instruction::PushBool(_) => {
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::BOOL,
                 });
                 ctx.ptr += 1;
             }
-            Op::Intrinsic(intrinsic) => {
+            Instruction::Intrinsic(intrinsic) => {
                 match intrinsic {
                     tokenizer::Intrinsic::Dump => {
                         let a = check_arity(1, ctx, op);
@@ -333,10 +332,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 };
                 ctx.ptr += 1;
             }
-            Op::End => {
-                todo!();
-            }
-            Op::If => {
+            Instruction::JumpEq | Instruction::JumpNeq => {
                 check_signature(
                     &op,
                     ctx,
@@ -362,17 +358,14 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                     }
                 }
             }
-            Op::Else => match op.data {
+            Instruction::Jump => match op.data {
                 LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
                 LinkedTokenData::None => {
                     eprintln!("{}: ERROR: Missing 'end'", op.word);
                     std::process::exit(1);
                 }
             },
-            Op::While => {
-                todo!();
-            }
-            Op::Do => {
+            Instruction::Do => {
                 check_signature(
                     &op,
                     ctx,
@@ -462,7 +455,7 @@ fn check_signature(op: &linker::LinkedToken, ctx: &mut Context, sigs: Vec<Signat
             args += 1;
         }
         if stack.len() < inputs.len() {
-            eprintln!("{}: ERROR: Not enough arguments were provided for '{}' '{}'.", op.word, op.op, op.word.txt);
+            eprintln!("{}: ERROR: Not enough arguments were provided for '{}' '{}'.", op.word, op.instruction, op.word.txt);
             eprintln!("{}: INFO: Missing arguments:", op.word);
             while !inputs.is_empty() {
                 let missing = inputs.pop().unwrap();

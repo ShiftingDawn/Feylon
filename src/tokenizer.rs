@@ -20,6 +20,7 @@ pub enum Op {
     Do,
 }
 
+#[derive(Copy, Clone)]
 pub enum Intrinsic {
     Dump,
     Drop,

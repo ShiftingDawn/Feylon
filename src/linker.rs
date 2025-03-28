@@ -1,7 +1,8 @@
 use crate::lexer;
 use crate::linker::LinkedTokenData::JumpAddr;
 use crate::tokenizer;
-use crate::tokenizer::Op;
+use crate::tokenizer::{Intrinsic, Op};
+use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone)]
 pub enum LinkedTokenData {
@@ -9,10 +10,42 @@ pub enum LinkedTokenData {
 
     JumpAddr(usize),
 }
+
+pub enum Instruction {
+    PushInt(u32),
+    PushBool(bool),
+    PushString(String),
+
+    Intrinsic(Intrinsic),
+
+    Jump,
+    JumpEq,
+    JumpNeq,
+    Do,
+}
+
+impl Display for Instruction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let txt = match self {
+            Instruction::PushInt(_) => "PUSH_INT",
+            Instruction::PushBool(_) => "PUSH_BOOL",
+            Instruction::PushString(_) => "PUSH_STRING",
+
+            Instruction::Intrinsic(_) => "INTRINSIC",
+
+            Instruction::Jump => "JUMP",
+            Instruction::JumpEq => "JUMP_EQ",
+            Instruction::JumpNeq => "JUMP_NEQ",
+            Instruction::Do => "DO",
+        };
+        write!(f, "{}", txt)
+    }
+}
+
 pub struct LinkedToken {
     pub word: lexer::Word,
     pub self_ptr: usize,
-    pub op: Op,
+    pub instruction: Instruction,
     pub data: LinkedTokenData,
 }
 
@@ -43,16 +76,16 @@ impl LinkerContext {
 }
 
 impl LinkedToken {
-    pub fn new(word: lexer::Word, self_ptr: usize, op: Op) -> LinkedToken {
+    pub fn new_with_data(word: lexer::Word, self_ptr: usize, instruction: Instruction, data: LinkedTokenData) -> LinkedToken {
         LinkedToken {
             word,
             self_ptr,
-            op,
-            data: LinkedTokenData::None,
+            instruction,
+            data,
         }
     }
-    pub fn new_with_data(word: lexer::Word, self_ptr: usize, op: Op, data: LinkedTokenData) -> LinkedToken {
-        LinkedToken { word, self_ptr, op, data }
+    pub fn new(word: lexer::Word, self_ptr: usize, instruction: Instruction) -> LinkedToken {
+        LinkedToken::new_with_data(word, self_ptr, instruction, LinkedTokenData::None)
     }
 }
 
@@ -62,20 +95,20 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
     while !ctx.tokens.is_empty() {
         let token = ctx.tokens.pop().unwrap();
         match &token.op {
-            Op::PushInt(_) => {
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+            Op::PushInt(val) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushInt(*val));
                 ctx.result.push(new_token);
             }
-            Op::PushBool(_) => {
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+            Op::PushBool(val) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushBool(*val));
                 ctx.result.push(new_token);
             }
-            Op::PushString(_) => {
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+            Op::PushString(val) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushString(val.clone()));
                 ctx.result.push(new_token);
             }
-            Op::Intrinsic(_) => {
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+            Op::Intrinsic(val) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Intrinsic(*val));
                 ctx.result.push(new_token);
             }
             Op::End => {
@@ -89,18 +122,15 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                     std::process::exit(1);
                 }
                 let ref_token = &mut ctx.result[ref_ptr];
-                match &ref_token.op {
-                    Op::If => {
+                match &ref_token.instruction {
+                    Instruction::Jump | Instruction::JumpEq | Instruction::JumpNeq => {
                         ref_token.data = JumpAddr(ctx.pointer);
                     }
-                    Op::Else => {
-                        ref_token.data = JumpAddr(ctx.pointer);
-                    }
-                    Op::Do => {
+                    Instruction::Do => {
                         let old_ref_data = ref_token.data;
                         //The DO instruction skips the block if on false values.
                         ref_token.data = JumpAddr(ctx.pointer + 1);
-                        let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Op::Else, old_ref_data);
+                        let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::Jump, old_ref_data);
                         ctx.result.push(new_token);
                     }
                     _ => {
@@ -114,7 +144,7 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
             }
             Op::If => {
                 ctx.call_stack.push(ctx.pointer);
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::JumpNeq);
                 ctx.result.push(new_token);
             }
             Op::Else => {
@@ -130,7 +160,7 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                 let ref_token = &mut ctx.result[ref_ptr];
                 ref_token.data = JumpAddr(ctx.pointer + 1);
                 ctx.call_stack.push(ctx.pointer);
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Jump);
                 ctx.result.push(new_token);
             }
             Op::While => {
@@ -148,7 +178,7 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                     std::process::exit(1);
                 }
                 ctx.call_stack.push(ctx.pointer);
-                let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), token.op, JumpAddr(ref_ptr));
+                let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::Do, JumpAddr(ref_ptr));
                 ctx.result.push(new_token);
             }
         }
