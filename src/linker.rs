@@ -48,18 +48,8 @@ impl LinkedToken {
             data: LinkedTokenData::None,
         }
     }
-    pub fn new_with_data(
-        word: lexer::Word,
-        self_ptr: usize,
-        op: tokenizer::Op,
-        data: LinkedTokenData,
-    ) -> LinkedToken {
-        LinkedToken {
-            word,
-            self_ptr,
-            op,
-            data,
-        }
+    pub fn new_with_data(word: lexer::Word, self_ptr: usize, op: tokenizer::Op, data: LinkedTokenData) -> LinkedToken {
+        LinkedToken { word, self_ptr, op, data }
     }
 }
 
@@ -81,77 +71,54 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
                 ctx.result.push(new_token);
             }
-            tokenizer::Op::Keyword(keyword) => match &keyword {
-                tokenizer::Keyword::END => {
-                    if ctx.call_stack.is_empty() {
+            tokenizer::Op::END => {
+                if ctx.call_stack.is_empty() {
+                    eprintln!("{}: ERROR: Encountered dangling 'end' statement", token.word);
+                    std::process::exit(1);
+                }
+                let ref_ptr = ctx.call_stack.pop().unwrap();
+                if ref_ptr >= ctx.result.len() {
+                    eprintln!("{}: ERROR: Encountered 'end' statement with an invalid reference. This is a linking error.", token.word);
+                    std::process::exit(1);
+                }
+                let ref_token = &mut ctx.result[ref_ptr];
+                match &ref_token.op {
+                    tokenizer::Op::IF => {
+                        ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
+                    }
+                    tokenizer::Op::ELSE => {
+                        ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
+                    }
+                    _ => {
                         eprintln!(
-                            "{}: ERROR: Encountered dangling 'end' statement",
-                            token.word
+                            "{}: ERROR: Encountered 'end' that references an invalid instruction '{}'. This is a linking error.",
+                            token.word, ref_token.word.txt
                         );
                         std::process::exit(1);
-                    }
-                    let ref_ptr = ctx.call_stack.pop().unwrap();
-                    if ref_ptr >= ctx.result.len() {
-                        eprintln!(
-                            "{}: ERROR: Encountered 'end' statement with an invalid reference. This is a linking error.",
-                            token.word
-                        );
-                        std::process::exit(1);
-                    }
-                    let ref_token = &mut ctx.result[ref_ptr];
-                    match &ref_token.op {
-                        tokenizer::Op::Keyword(keyword) => match keyword {
-                            tokenizer::Keyword::IF => {
-                                ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
-                            }
-                            tokenizer::Keyword::ELSE => {
-                                ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
-                            }
-                            _ => {
-                                eprintln!(
-                                    "{}: ERROR: Encountered 'end' that references an invalid instruction '{}'. This is a linking error.",
-                                    token.word, ref_token.word.txt
-                                );
-                                std::process::exit(1);
-                            }
-                        },
-                        _ => {
-                            eprintln!(
-                                "{}: ERROR: Encountered 'end' that references an invalid instruction '{}'. This is a linking error.",
-                                token.word, ref_token.word.txt
-                            );
-                            std::process::exit(1);
-                        }
                     }
                 }
-                tokenizer::Keyword::IF => {
-                    ctx.call_stack.push(ctx.pointer);
-                    let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
-                    ctx.result.push(new_token);
+            }
+            tokenizer::Op::IF => {
+                ctx.call_stack.push(ctx.pointer);
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+                ctx.result.push(new_token);
+            }
+            tokenizer::Op::ELSE => {
+                if ctx.call_stack.is_empty() {
+                    eprintln!("{}: ERROR: Encountered dangling 'else' statement", token.word);
+                    std::process::exit(1);
                 }
-                tokenizer::Keyword::ELSE => {
-                    if ctx.call_stack.is_empty() {
-                        eprintln!(
-                            "{}: ERROR: Encountered dangling 'else' statement",
-                            token.word
-                        );
-                        std::process::exit(1);
-                    }
-                    let ref_ptr = ctx.call_stack.pop().unwrap();
-                    if ref_ptr >= ctx.result.len() {
-                        eprintln!(
-                            "{}: ERROR: Encountered 'else' statement with an invalid reference. This is a linking error.",
-                            token.word
-                        );
-                        std::process::exit(1);
-                    }
-                    let ref_token = &mut ctx.result[ref_ptr];
-                    ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer + 1);
-                    ctx.call_stack.push(ctx.pointer);
-                    let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
-                    ctx.result.push(new_token);
+                let ref_ptr = ctx.call_stack.pop().unwrap();
+                if ref_ptr >= ctx.result.len() {
+                    eprintln!("{}: ERROR: Encountered 'else' statement with an invalid reference. This is a linking error.", token.word);
+                    std::process::exit(1);
                 }
-            },
+                let ref_token = &mut ctx.result[ref_ptr];
+                ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer + 1);
+                ctx.call_stack.push(ctx.pointer);
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
+                ctx.result.push(new_token);
+            }
         }
     }
     ctx

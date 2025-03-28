@@ -11,7 +11,10 @@ pub enum Op {
     PushString(String),
 
     Intrinsic(Intrinsic),
-    Keyword(Keyword),
+
+    END,
+    IF,
+    ELSE,
 }
 
 pub enum Intrinsic {
@@ -28,12 +31,6 @@ pub enum Intrinsic {
     MemGet,
 }
 
-pub enum Keyword {
-    END,
-    IF,
-    ELSE,
-}
-
 impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let txt = match self {
@@ -41,7 +38,10 @@ impl Display for Op {
             Op::PushString(_) => "PUSH_STRING",
 
             Op::Intrinsic(_) => "INTRINSIC",
-            Op::Keyword(_) => "KEYWORD",
+
+            Op::END => "END",
+            Op::IF => "IF",
+            Op::ELSE => "ELSE",
         };
         write!(f, "{}", txt)
     }
@@ -65,17 +65,6 @@ impl Display for Intrinsic {
     }
 }
 
-
-impl Display for Keyword {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let txt = match self {
-            Keyword::END => "END",
-            Keyword::IF => "IF",
-            Keyword::ELSE => "ELSE",
-        };
-        write!(f, "{}", txt)
-    }
-}
 pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
     let mut result = vec![];
     for word in words {
@@ -107,12 +96,9 @@ pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
             }
             None => {}
         }
-        match get_keyword_by_word(&word.txt) {
-            Some(keyword) => {
-                result.push(Token {
-                    word,
-                    op: Op::Keyword(keyword),
-                });
+        match get_operation_by_word(&word.txt) {
+            Some(op) => {
+                result.push(Token { word, op });
                 continue;
             }
             None => {}
@@ -142,13 +128,11 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
     }
 }
 
-fn get_keyword_by_word(word: &str) -> Option<Keyword> {
+fn get_operation_by_word(word: &str) -> Option<Op> {
     match word {
-        "end" => Some(Keyword::END),
-
-        "if" => Some(Keyword::IF),
-        "else" => Some(Keyword::ELSE),
-
+        "end" => Some(Op::END),
+        "if" => Some(Op::IF),
+        "else" => Some(Op::ELSE),
         _ => None,
     }
 }

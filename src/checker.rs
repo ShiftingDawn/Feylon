@@ -1,5 +1,4 @@
 use crate::linker::LinkedTokenData;
-use crate::tokenizer::Keyword;
 use crate::{lexer, linker, tokenizer};
 use std::fmt::{Display, Formatter};
 
@@ -161,42 +160,40 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                 };
                 ctx.ptr += 1;
             }
-            tokenizer::Op::Keyword(keyword) => match keyword {
-                Keyword::IF => {
-                    check_signature(
-                        &op,
-                        ctx,
-                        vec![Signature {
-                            ins: vec![tp(&op.word, DataType::INT)],
-                            outs: vec![],
-                        }],
-                    );
-                    ctx.ptr += 1;
-                    match op.data {
-                        LinkedTokenData::JumpAddr(ptr) => {
-                            let new_ctx = Context {
-                                stack: ctx.stack.clone(),
-                                ptr,
-                                outs: ctx.stack.clone(),
-                            };
-                            contexts.push(new_ctx);
-                            continue;
-                        }
-                        LinkedTokenData::None => {
-                            eprintln!("{}: ERROR: Missing 'end'", op.word);
-                            std::process::exit(1);
-                        }
+            tokenizer::Op::END => {
+                todo!();
+            }
+            tokenizer::Op::IF => {
+                check_signature(
+                    &op,
+                    ctx,
+                    vec![Signature {
+                        ins: vec![tp(&op.word, DataType::INT)],
+                        outs: vec![],
+                    }],
+                );
+                ctx.ptr += 1;
+                match op.data {
+                    LinkedTokenData::JumpAddr(ptr) => {
+                        let new_ctx = Context {
+                            stack: ctx.stack.clone(),
+                            ptr,
+                            outs: ctx.stack.clone(),
+                        };
+                        contexts.push(new_ctx);
+                        continue;
                     }
-                }
-                Keyword::ELSE => match op.data {
-                    LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
                     LinkedTokenData::None => {
                         eprintln!("{}: ERROR: Missing 'end'", op.word);
                         std::process::exit(1);
                     }
-                },
-                Keyword::END => {
-                    todo!();
+                }
+            }
+            tokenizer::Op::ELSE => match op.data {
+                LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
+                LinkedTokenData::None => {
+                    eprintln!("{}: ERROR: Missing 'end'", op.word);
+                    std::process::exit(1);
                 }
             },
         }
