@@ -1,6 +1,8 @@
 use crate::linker::LinkedTokenData;
 use crate::{lexer, linker, tokenizer};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use tokenizer::Op;
 
 #[derive(Clone, PartialEq, Debug)]
 enum DataType {
@@ -32,7 +34,8 @@ struct Signature {
     outs: Vec<TypedPos>,
 }
 
-pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usize) {
+pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usize) {
+    let mut visited_loops: HashMap<usize, Vec<TypedPos>> = HashMap::new();
     let ops = &linker_context.result;
     let mut contexts: Vec<Context> = vec![Context {
         stack: vec![],
@@ -48,26 +51,26 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
         }
         let op = &ops[ctx.ptr];
         match &op.op {
-            tokenizer::Op::PushInt(_) => {
+            Op::PushInt(_) => {
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::INT,
                 });
                 ctx.ptr += 1;
             }
-            tokenizer::Op::PushString(_) => {
+            Op::PushString(_) => {
                 ctx.stack.push(tp(&op.word, DataType::INT));
                 ctx.stack.push(tp(&op.word, DataType::PTR));
                 ctx.ptr += 1;
             }
-            tokenizer::Op::PushBool(_) => {
+            Op::PushBool(_) => {
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::BOOL,
                 });
                 ctx.ptr += 1;
             }
-            tokenizer::Op::Intrinsic(intrinsic) => {
+            Op::Intrinsic(intrinsic) => {
                 match intrinsic {
                     tokenizer::Intrinsic::Dump => {
                         let a = check_arity(1, ctx, op);
@@ -330,10 +333,10 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                 };
                 ctx.ptr += 1;
             }
-            tokenizer::Op::END => {
+            Op::End => {
                 todo!();
             }
-            tokenizer::Op::IF => {
+            Op::If => {
                 check_signature(
                     &op,
                     ctx,
@@ -348,7 +351,7 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                         let new_ctx = Context {
                             stack: ctx.stack.clone(),
                             ptr,
-                            outs: ctx.stack.clone(),
+                            outs: ctx.outs.clone(),
                         };
                         contexts.push(new_ctx);
                         continue;
@@ -359,13 +362,62 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                     }
                 }
             }
-            tokenizer::Op::ELSE => match op.data {
+            Op::Else => match op.data {
                 LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
                 LinkedTokenData::None => {
                     eprintln!("{}: ERROR: Missing 'end'", op.word);
                     std::process::exit(1);
                 }
             },
+            Op::While => {
+                todo!();
+            }
+            Op::Do => {
+                check_signature(
+                    &op,
+                    ctx,
+                    vec![Signature {
+                        ins: vec![tp(&op.word, DataType::BOOL)],
+                        outs: vec![],
+                    }],
+                );
+                if !visited_loops.contains_key(&ctx.ptr) {
+                    visited_loops.insert(ctx.ptr, ctx.stack.clone());
+                    ctx.ptr += 1;
+                    let jump_ptr = match op.data {
+                        LinkedTokenData::JumpAddr(ptr) => ptr,
+                        LinkedTokenData::None => {
+                            eprintln!("{}: ERROR: Encountered 'do' without jump address. This is a linking error!", op.word);
+                            std::process::exit(1);
+                        }
+                    };
+                    let new_ctx = Context {
+                        stack: ctx.stack.clone(),
+                        ptr: jump_ptr,
+                        outs: ctx.outs.clone(),
+                    };
+                    contexts.push(new_ctx);
+                    continue;
+                } else {
+                    let expected_types: Vec<DataType> = visited_loops.get(&ctx.ptr).unwrap().iter().map(|x| x.typ.clone()).collect();
+                    let actual_types: Vec<DataType> = ctx.stack.iter().map(|x| x.typ.clone()).collect();
+                    if expected_types != actual_types {
+                        eprintln!("{}: ERROR: Loops are not allowed to modify the stack between iterations!", op.word);
+                        eprintln!("{}: INFO : Stack before loop:", op.word);
+                        if visited_loops.get(&ctx.ptr).unwrap().is_empty() {
+                            eprintln!("{}: INFO : <empty>", op.word);
+                        } else {
+                            let before_tokens = visited_loops.get(&ctx.ptr).unwrap();
+                            for before_token in before_tokens {
+                                eprintln!("{}: INFO : {}", before_token.word, before_token.typ);
+                            }
+                        }
+                        std::process::exit(1);
+                    }
+                    contexts.pop();
+                    continue;
+                }
+            }
         }
     }
 }

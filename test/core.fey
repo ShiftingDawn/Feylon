@@ -18,3 +18,8 @@ false if 69 dump else 420 dump end  //420
 
 2 2 << dump // 8
 8 2 >> dump // 2
+
+5 while dup 0 > do
+    dup dump
+    1 -
+end drop

@@ -158,7 +158,8 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
-            tokenizer::Op::IF => {
+            tokenizer::Op::End => panic!(),
+            tokenizer::Op::If => {
                 let flag = stack.pop().unwrap();
                 if flag == 0 {
                     match op.data {
@@ -171,7 +172,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
-            tokenizer::Op::ELSE => {
+            tokenizer::Op::Else => {
                 match op.data {
                     LinkedTokenData::JumpAddr(ptr) => {
                         program_counter = ptr;
@@ -180,7 +181,26 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 continue;
             }
-            tokenizer::Op::END => panic!(),
+            tokenizer::Op::While => panic!(),
+            tokenizer::Op::Do => {
+                let flag = stack.pop().unwrap();
+                if flag == 0 {
+                    match op.data {
+                        LinkedTokenData::JumpAddr(ptr) => {
+                            program_counter = ptr;
+                        }
+                        LinkedTokenData::None => panic!(),
+                    }
+                    continue;
+                }
+                program_counter += 1;
+            }
         }
+    }
+
+    if !stack.is_empty() {
+        eprintln!("ERROR: Simulation exited with leftover data on the stack");
+        eprintln!("ERROR: This may be a false positive if allowed_overflow has been used.");
+        eprintln!("{:?}", stack);
     }
 }

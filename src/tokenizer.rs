@@ -13,9 +13,11 @@ pub enum Op {
 
     Intrinsic(Intrinsic),
 
-    END,
-    IF,
-    ELSE,
+    End,
+    If,
+    Else,
+    While,
+    Do,
 }
 
 pub enum Intrinsic {
@@ -55,9 +57,11 @@ impl Display for Op {
 
             Op::Intrinsic(_) => "INTRINSIC",
 
-            Op::END => "END",
-            Op::IF => "IF",
-            Op::ELSE => "ELSE",
+            Op::End => "END",
+            Op::If => "IF",
+            Op::Else => "ELSE",
+            Op::While => "WHILE",
+            Op::Do => "DO",
         };
         write!(f, "{}", txt)
     }
@@ -176,9 +180,11 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
 
 fn get_operation_by_word(word: &str) -> Option<Op> {
     match word {
-        "end" => Some(Op::END),
-        "if" => Some(Op::IF),
-        "else" => Some(Op::ELSE),
+        "end" => Some(Op::End),
+        "if" => Some(Op::If),
+        "else" => Some(Op::Else),
+        "while" => Some(Op::While),
+        "do" => Some(Op::Do),
         _ => None,
     }
 }

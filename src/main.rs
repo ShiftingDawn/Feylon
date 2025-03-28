@@ -21,7 +21,7 @@ fn main() {
     match args[1].as_str() {
         "simulate" => match read_file_contents(&last_arg) {
             Ok(lines) => {
-                let program = compile_program(last_arg.clone(), lines);
+                let program = compile_program(last_arg.clone(), lines, false);
                 simulator::simulate_tokens(program);
                 std::process::exit(0);
             }
@@ -32,7 +32,8 @@ fn main() {
         },
         "compile" => match read_file_contents(&last_arg) {
             Ok(lines) => {
-                let program = compile_program(last_arg.clone(), lines);
+                let skip_typecheck = args.len() >= 3 && args[2].as_str() == "--unsafe";
+                let program = compile_program(last_arg.clone(), lines, skip_typecheck);
                 bytewriter::write_parsed_program_to_file(&last_arg, &program);
                 std::process::exit(0);
             }
@@ -64,6 +65,7 @@ fn usage(self_path: &str) {
     println!("    Available options:");
     println!("  compile         Compile the given program and write it to disk");
     println!("    Available options:");
+    println!("      --unsafe    Skip typechecking");
     println!("  test            Interpret and test the given program");
     println!("    Available options:");
     println!("      --built-in  Run the built-in test program. Does not need a file path.");
@@ -80,16 +82,18 @@ pub fn read_file_contents(path: &str) -> io::Result<Vec<String>> {
     Ok(lines)
 }
 
-fn compile_program(file: String, lines: Vec<String>) -> LinkerContext {
+fn compile_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> LinkerContext {
     let words = lexer::parse_lines_into_words(file, lines);
     let tokens = tokenizer::parse_words_into_tokens(words);
     let linked = linker::link_tokens(tokens);
-    checker::check_types(&linked, 0);
+    if !skip_typecheck {
+        checker::check_types(&linked, 0);
+    }
     linked
 }
 
 fn run_builtin_test() {
-    let tokens = compile_program(String::from("<generated>"), vec![String::from("1 2 + dump")]);
+    let tokens = compile_program(String::from("<generated>"), vec![String::from("1 2 + dump")], false);
     checker::check_types(&tokens, 0);
     simulator::simulate_tokens(tokens);
 }
