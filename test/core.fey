@@ -9,3 +9,6 @@ mem 7 memset    // Nothing
 mem memget dump // 7
 
 "Hello, Feylon!" dump dump      //65536 14
+
+1 if 69 dump else 420 dump end  //69
+0 if 69 dump else 420 dump end  //420

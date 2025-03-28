@@ -1,4 +1,5 @@
 use crate::linker;
+use crate::linker::{LinkedToken, LinkedTokenData};
 use crate::tokenizer;
 
 const MEM_OFFSET: usize = 65536;
@@ -72,9 +73,31 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
-            tokenizer::Op::Keyword(keyword) => {
-                todo!();
-            }
+            tokenizer::Op::Keyword(keyword) => match keyword {
+                tokenizer::Keyword::IF => {
+                    let flag = stack.pop().unwrap();
+                    if flag == 0 {
+                        match op.data {
+                            LinkedTokenData::JumpAddr(ptr) => {
+                                program_counter = ptr;
+                            }
+                            LinkedTokenData::None => panic!(),
+                        }
+                        continue;
+                    }
+                    program_counter += 1;
+                }
+                tokenizer::Keyword::ELSE => {
+                    match op.data {
+                        LinkedTokenData::JumpAddr(ptr) => {
+                            program_counter = ptr;
+                        }
+                        LinkedTokenData::None => panic!(),
+                    }
+                    continue;
+                },
+                tokenizer::Keyword::END => panic!()
+            },
         }
     }
 }

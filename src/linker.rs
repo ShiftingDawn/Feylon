@@ -104,6 +104,9 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                             tokenizer::Keyword::IF => {
                                 ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
                             }
+                            tokenizer::Keyword::ELSE => {
+                                ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer);
+                            }
                             _ => {
                                 eprintln!(
                                     "{}: ERROR: Encountered 'end' that references an invalid instruction '{}'. This is a linking error.",
@@ -143,7 +146,7 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
                         std::process::exit(1);
                     }
                     let ref_token = &mut ctx.result[ref_ptr];
-                    ref_token.data = LinkedTokenData::JumpAddr(ref_ptr + 1);
+                    ref_token.data = LinkedTokenData::JumpAddr(ctx.pointer + 1);
                     ctx.call_stack.push(ctx.pointer);
                     let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), token.op);
                     ctx.result.push(new_token);

@@ -1,3 +1,5 @@
+use crate::linker::LinkedTokenData;
+use crate::tokenizer::Keyword;
 use crate::{lexer, linker, tokenizer};
 use std::fmt::{Display, Formatter};
 
@@ -37,7 +39,7 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
         ptr: 0,
         outs: vec![],
     }];
-    while !contexts.is_empty() {
+    while !&contexts.is_empty() {
         let ctx = contexts.last_mut().unwrap();
         if ctx.ptr >= ops.len() {
             check_outputs(ctx, allowed_overflow);
@@ -159,9 +161,44 @@ pub(crate) fn check_types(linker_context: &linker::LinkerContext, allowed_overfl
                 };
                 ctx.ptr += 1;
             }
-            tokenizer::Op::Keyword(keyword) => {
-                todo!();
-            }
+            tokenizer::Op::Keyword(keyword) => match keyword {
+                Keyword::IF => {
+                    check_signature(
+                        &op,
+                        ctx,
+                        vec![Signature {
+                            ins: vec![tp(&op.word, DataType::INT)],
+                            outs: vec![],
+                        }],
+                    );
+                    ctx.ptr += 1;
+                    match op.data {
+                        LinkedTokenData::JumpAddr(ptr) => {
+                            let new_ctx = Context {
+                                stack: ctx.stack.clone(),
+                                ptr,
+                                outs: ctx.stack.clone(),
+                            };
+                            contexts.push(new_ctx);
+                            continue;
+                        }
+                        LinkedTokenData::None => {
+                            eprintln!("{}: ERROR: Missing 'end'", op.word);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                Keyword::ELSE => match op.data {
+                    LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
+                    LinkedTokenData::None => {
+                        eprintln!("{}: ERROR: Missing 'end'", op.word);
+                        std::process::exit(1);
+                    }
+                },
+                Keyword::END => {
+                    todo!();
+                }
+            },
         }
     }
 }
