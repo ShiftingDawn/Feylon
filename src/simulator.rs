@@ -4,6 +4,7 @@ use crate::tokenizer::Intrinsic;
 
 pub fn simulate_tokens(linker_context: linker::LinkerContext) {
     let mut stack: Vec<u32> = vec![];
+    let mut call_stack: Vec<usize> = vec![];
     let mut mem: Vec<u8> = vec![0; linker_context.mem_size];
     let mut string_pool = [0; 65536];
     let mut string_ptr = 0;
@@ -184,6 +185,23 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 program_counter += 1;
             }
+            linker::Instruction::Call => match op.data {
+                LinkedTokenData::JumpAddr(ptr) => {
+                    call_stack.push(program_counter + 1);
+                    program_counter = ptr;
+                }
+                LinkedTokenData::None => panic!(),
+            },
+            linker::Instruction::Return => {
+                let return_ptr = call_stack.pop().unwrap();
+                program_counter = return_ptr;
+            }
+            linker::Instruction::Jump | linker::Instruction::Function => match op.data {
+                LinkedTokenData::JumpAddr(ptr) => {
+                    program_counter = ptr;
+                }
+                LinkedTokenData::None => panic!(),
+            },
             linker::Instruction::JumpNeq => {
                 let flag = stack.pop().unwrap();
                 if flag == 0 {
@@ -196,15 +214,6 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                     continue;
                 }
                 program_counter += 1;
-            }
-            linker::Instruction::Jump => {
-                match op.data {
-                    LinkedTokenData::JumpAddr(ptr) => {
-                        program_counter = ptr;
-                    }
-                    LinkedTokenData::None => panic!(),
-                }
-                continue;
             }
             linker::Instruction::Do => {
                 let flag = stack.pop().unwrap();

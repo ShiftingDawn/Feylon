@@ -5,7 +5,7 @@
 50 10 / dump    // 5
 14 8 % dump     // 6
 
-"Hello, Feylon!" dump dump      //65536 14
+"Hello, Feylon!" dump dump      //0 14
 
 true dump   // 1
 false dump  // 0
@@ -29,3 +29,10 @@ TEST3 dump
 memory MEMA 64 end
 MEMA 16 store8
 MEMA load8 dump
+
+function cheese()
+    1337 dump
+end
+
+1338 dump
+cheese

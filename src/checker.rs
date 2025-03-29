@@ -10,6 +10,15 @@ pub enum DataType {
     BOOL,
 }
 
+pub fn get_data_type_by_text(txt: &str) -> Option<DataType> {
+    match txt {
+        "int" => Some(DataType::INT),
+        "ptr" => Some(DataType::PTR),
+        "bool" => Some(DataType::BOOL),
+        _ => None,
+    }
+}
+
 impl Display for DataType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -17,9 +26,9 @@ impl Display for DataType {
 }
 
 #[derive(Clone)]
-struct TypedPos {
-    word: lexer::Word,
-    typ: DataType,
+pub struct TypedPos {
+    pub word: lexer::Word,
+    pub typ: DataType,
 }
 
 struct Context {
@@ -28,6 +37,7 @@ struct Context {
     outs: Vec<TypedPos>,
 }
 
+#[derive(Clone)]
 struct Signature {
     ins: Vec<TypedPos>,
     outs: Vec<TypedPos>,
@@ -35,6 +45,14 @@ struct Signature {
 
 pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usize) {
     let mut visited_loops: HashMap<usize, Vec<TypedPos>> = HashMap::new();
+    let mut function_signatures: HashMap<String, Signature> = HashMap::new();
+    for (func_name, func_ref) in &linker_context.functions {
+        let sig = Signature {
+            ins: func_ref.ins.clone(),
+            outs: func_ref.outs.clone(),
+        };
+        function_signatures.insert(func_name.clone(), sig);
+    }
     let ops = &linker_context.result;
     let mut contexts: Vec<Context> = vec![Context {
         stack: vec![],
@@ -328,6 +346,24 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                     }
                 };
                 ctx.ptr += 1;
+            }
+            Instruction::Function => match op.data {
+                LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
+                LinkedTokenData::None => {
+                    eprintln!("{}: ERROR: Missing 'end'", op.word);
+                    std::process::exit(1);
+                }
+            },
+            Instruction::Call => match function_signatures.get(&op.word.txt) {
+                None => {}
+                Some(sig) => {
+                    check_signature(&op, ctx, vec![sig.clone()]);
+                    ctx.ptr += 1;
+                }
+            },
+            Instruction::Return => {
+                check_outputs(ctx, 0);
+                contexts.pop();
             }
             Instruction::JumpNeq => {
                 check_signature(

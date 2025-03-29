@@ -1,3 +1,5 @@
+use crate::checker::TypedPos;
+use crate::lexer::Word;
 use crate::{checker, lexer};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -12,9 +14,15 @@ pub struct MemoryDef {
     pub size: usize,
 }
 
+pub struct FunctionDef {
+    pub ins: Vec<TypedPos>,
+    pub outs: Vec<TypedPos>,
+}
+
 pub struct ParserContext {
     pub result: Vec<Token>,
     pub constants: HashMap<String, ConstDef>,
+    pub functions: HashMap<String, FunctionDef>,
     pub memories: HashMap<String, MemoryDef>,
     pub total_memory_size: usize,
     known_constants: Vec<String>,
@@ -39,6 +47,8 @@ pub enum Op {
     ConstRef(String),
     Mem(String),
     MemRef(String),
+    Function(String),
+    FunctionRef(String),
 
     End,
     If,
@@ -92,6 +102,8 @@ impl Display for Op {
             Op::ConstRef(_) => "CONST_REF",
             Op::Mem(_) => "CONST",
             Op::MemRef(_) => "CONST_REF",
+            Op::Function(_) => "FUNCTION",
+            Op::FunctionRef(_) => "FUNCTION_REF",
 
             Op::End => "END",
             Op::If => "IF",
@@ -144,6 +156,7 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
     let mut ctx = ParserContext {
         result: vec![],
         constants: HashMap::new(),
+        functions: HashMap::new(),
         memories: HashMap::new(),
         total_memory_size: 0,
         known_constants: vec![],
@@ -262,6 +275,17 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
             ctx.known_memories.push(mem_name);
             continue;
         }
+        if "function" == word.txt {
+            if words.is_empty() {
+                eprintln!("{}: ERROR: Encountered incomplete function signature", word);
+                std::process::exit(1);
+            }
+            ctx.block_stack.push(ctx.current_block_id);
+            ctx.current_block_id += 1;
+            let function_token = parse_function(&mut ctx, &mut words, &word);
+            ctx.result.push(function_token);
+            continue;
+        }
         if ctx.known_constants.contains(&word.txt) {
             let name = word.txt.clone();
             ctx.result.push(Token { word, op: Op::ConstRef(name) });
@@ -270,6 +294,11 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
         if ctx.known_memories.contains(&word.txt) {
             let name = word.txt.clone();
             ctx.result.push(Token { word, op: Op::MemRef(name) });
+            continue;
+        }
+        if ctx.functions.contains_key(&word.txt) {
+            let name = word.txt.clone();
+            ctx.result.push(Token { word, op: Op::FunctionRef(name) });
             continue;
         }
         eprintln!("{}: ERROR: Unknown word: '{}'", word, word.txt);
@@ -320,5 +349,105 @@ fn get_operation_by_word(word: &str) -> Option<Op> {
         "while" => Some(Op::While),
         "do" => Some(Op::Do),
         _ => None,
+    }
+}
+
+fn parse_function(ctx: &mut ParserContext, words: &mut Vec<Word>, function_word: &Word) -> Token {
+    let mut next_word = words.pop().unwrap();
+    if next_word.txt.contains("\"") || next_word.txt.contains("\'") {
+        eprintln!("{}: ERROR: Function name cannot contain any quotes", next_word);
+        std::process::exit(1);
+    }
+    let mut parts: Vec<lexer::Word> = vec![];
+    let mut buffer: String = String::from("");
+    let mut ptr: usize = 0;
+    'MainLoop: while !words.is_empty() {
+        let txt = next_word.txt.clone();
+        let mut i = 0;
+        while i < txt.len() {
+            let c = txt.chars().nth(i).unwrap();
+            if c == '(' || c == ' ' || c == ')' {
+                if ptr > 0 {
+                    parts.push(lexer::Word {
+                        file: next_word.file.clone(),
+                        row: next_word.row,
+                        col: next_word.col,
+                        txt: buffer.clone(),
+                    });
+                    buffer = String::from("");
+                    ptr = 0;
+                }
+                if c == ')' {
+                    break 'MainLoop;
+                }
+                i += 1;
+                continue;
+            }
+            if c == '-' && i + 1 < txt.len() && txt.chars().nth(i + 1).unwrap() == '>' {
+                parts.push(lexer::Word {
+                    file: next_word.file.clone(),
+                    row: next_word.row,
+                    col: next_word.col,
+                    txt: String::from("->"),
+                });
+                i += 2;
+                ptr = 0;
+            } else {
+                buffer += &c.to_string();
+                ptr += 1;
+            }
+            i += 1;
+        }
+        if (ptr > 0) {
+            parts.push(lexer::Word {
+                file: next_word.file.clone(),
+                row: next_word.row,
+                col: next_word.col,
+                txt: String::from(buffer),
+            });
+            buffer = String::from("");
+            ptr = 0;
+        }
+        next_word = words.pop().unwrap();
+    }
+    let func_name_word = parts.first().unwrap().clone();
+    parts.remove(0);
+    let mut ins: Vec<TypedPos> = vec![];
+    let mut outs: Vec<TypedPos> = vec![];
+    let mut input = true;
+    for part in parts {
+        if part.txt == "->" {
+            input = false;
+        } else {
+            let data_type = checker::get_data_type_by_text(&part.txt);
+            match data_type {
+                Some(typ) => {
+                    if (input) {
+                        ins.push(TypedPos { word: part, typ: typ.clone() });
+                    } else {
+                        outs.push(TypedPos { word: part, typ: typ.clone() });
+                    }
+                }
+                None => {
+                    eprintln!(
+                        "{}: ERROR: Function signature containts unknown {} type: '{}'",
+                        part,
+                        if input { "input" } else { "output" },
+                        part.txt
+                    );
+                    std::process::exit(1);
+                }
+            }
+        }
+    }
+    ctx.functions.insert(func_name_word.txt.clone(), FunctionDef { ins, outs });
+    Token {
+        word: Word {
+            file: function_word.file.clone(),
+            row: function_word.row,
+            col: function_word.col,
+            txt: func_name_word.txt.clone(),
+        },
+        op: Op::Function(func_name_word.txt.clone()),
     }
 }

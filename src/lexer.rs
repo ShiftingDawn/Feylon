@@ -12,9 +12,9 @@ where
 }
 
 pub struct Word {
-    file: String,
-    row: u32,
-    col: u32,
+    pub file: String,
+    pub row: u32,
+    pub col: u32,
     pub txt: String,
 }
 

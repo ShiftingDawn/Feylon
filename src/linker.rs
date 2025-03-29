@@ -1,7 +1,9 @@
+use crate::checker::TypedPos;
 use crate::linker::LinkedTokenData::JumpAddr;
 use crate::tokenizer;
 use crate::tokenizer::{Intrinsic, Op};
 use crate::{checker, lexer};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone)]
@@ -19,6 +21,10 @@ pub enum Instruction {
 
     Intrinsic(Intrinsic),
 
+    Function,
+    Call,
+    Return,
+
     Jump,
     JumpNeq,
     Do,
@@ -33,6 +39,10 @@ impl Display for Instruction {
             Instruction::PushString(_) => "PUSH_STRING",
 
             Instruction::Intrinsic(_) => "INTRINSIC",
+
+            Instruction::Function => "FUNCTION",
+            Instruction::Call => "CALL",
+            Instruction::Return => "RETURN",
 
             Instruction::Jump => "JUMP",
             Instruction::JumpNeq => "JUMP_NEQ",
@@ -49,19 +59,27 @@ pub struct LinkedToken {
     pub data: LinkedTokenData,
 }
 
+pub struct FunctionRef {
+    pub ins: Vec<TypedPos>,
+    pub outs: Vec<TypedPos>,
+    ptr: usize,
+}
+
 pub struct LinkerContext {
     tokens: Vec<tokenizer::Token>,
     pub result: Vec<LinkedToken>,
+    pub functions: HashMap<String, FunctionRef>,
     call_stack: Vec<usize>,
     pub mem_size: usize,
     pointer: usize,
 }
 
 impl LinkerContext {
-    pub const fn new(tokens: Vec<tokenizer::Token>, mem_size: usize) -> LinkerContext {
+    pub fn new(tokens: Vec<tokenizer::Token>, mem_size: usize) -> LinkerContext {
         LinkerContext {
             tokens,
             result: vec![],
+            functions: HashMap::new(),
             call_stack: vec![],
             mem_size,
             pointer: 0,
@@ -139,6 +157,32 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushPtr(def.ptr));
                 ctx.result.push(new_token);
             }
+            Op::Function(function_name) => {
+                ctx.call_stack.push(ctx.pointer);
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Function);
+                ctx.result.push(new_token);
+                let func_def = parser_context.functions.get(function_name).unwrap();
+                ctx.functions.insert(
+                    function_name.clone(),
+                    FunctionRef {
+                        ins: func_def.ins.clone(),
+                        outs: func_def.outs.clone(),
+                        ptr: ctx.pointer,
+                    },
+                );
+            }
+            Op::FunctionRef(function_name) => {
+                let func_ref = ctx.functions.get(function_name).unwrap_or_else(|| {
+                    eprintln!(
+                        "{}: ERROR: Encountered a reference to a nonexistent function '{}'. This is a tokenizing error.",
+                        token.word, function_name
+                    );
+                    std::process::exit(1);
+                });
+                let func_addr = func_ref.ptr;
+                let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::Call, JumpAddr(func_addr));
+                ctx.result.push(new_token);
+            }
             Op::End => {
                 if ctx.call_stack.is_empty() {
                     eprintln!("{}: ERROR: Encountered dangling 'end' statement", token.word);
@@ -151,6 +195,11 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 }
                 let ref_token = &mut ctx.result[ref_ptr];
                 match &ref_token.instruction {
+                    Instruction::Function => {
+                        ref_token.data = JumpAddr(ctx.pointer + 1);
+                        let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Return);
+                        ctx.result.push(new_token);
+                    }
                     Instruction::Jump | Instruction::JumpNeq => {
                         ref_token.data = JumpAddr(ctx.pointer);
                     }
