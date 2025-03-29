@@ -4,6 +4,7 @@ use std::io::{self, BufRead, BufReader};
 
 mod bytewriter;
 mod checker;
+mod evaluator;
 mod lexer;
 mod linker;
 mod simulator;
@@ -84,7 +85,8 @@ pub fn read_file_contents(path: &str) -> io::Result<Vec<String>> {
 
 fn compile_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> LinkerContext {
     let words = lexer::parse_lines_into_words(file, lines);
-    let tokens = tokenizer::parse_words_into_tokens(words);
+    let mut tokens = tokenizer::parse_words_into_tokens(words);
+    evaluator::evaluate_tokens(&mut tokens);
     let linked = linker::link_tokens(tokens);
     if !skip_typecheck {
         checker::check_types(&linked, 0);

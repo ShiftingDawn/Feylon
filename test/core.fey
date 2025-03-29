@@ -23,3 +23,8 @@ false if 69 dump else 420 dump end  //420
     dup dump
     1 -
 end drop
+
+const TEST 34 end
+const TEST2 35 end
+const TEST3 TEST TEST2 + end
+TEST3 dump

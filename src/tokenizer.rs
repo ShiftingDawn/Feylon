@@ -1,5 +1,19 @@
-use crate::lexer;
+use crate::{checker, lexer};
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+
+pub struct ConstDef {
+    pub typ: checker::DataType,
+    pub val: u32,
+}
+
+pub struct ParserContext {
+    pub result: Vec<Token>,
+    pub constants: HashMap<String, ConstDef>,
+    known_constants: Vec<String>,
+    block_stack: Vec<usize>,
+    current_block_id: usize,
+}
 
 pub struct Token {
     pub word: lexer::Word,
@@ -12,6 +26,8 @@ pub enum Op {
     PushString(String),
 
     Intrinsic(Intrinsic),
+    Const(String),
+    ConstRef(String),
 
     End,
     If,
@@ -57,6 +73,8 @@ impl Display for Op {
             Op::PushString(_) => "PUSH_STRING",
 
             Op::Intrinsic(_) => "INTRINSIC",
+            Op::Const(_) => "CONST",
+            Op::ConstRef(_) => "CONST_REF",
 
             Op::End => "END",
             Op::If => "IF",
@@ -101,32 +119,41 @@ impl Display for Intrinsic {
     }
 }
 
-pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
-    let mut result = vec![];
-    for word in words {
+pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
+    words.reverse();
+    let mut ctx = ParserContext {
+        result: vec![],
+        constants: HashMap::new(),
+        known_constants: vec![],
+        block_stack: vec![],
+        current_block_id: 0,
+    };
+    while !words.is_empty() {
+        let word = words.pop().unwrap();
         match word.txt.parse::<u32>() {
             Ok(x) => {
-                result.push(Token { word, op: Op::PushInt(x) });
+                ctx.result.push(Token { word, op: Op::PushInt(x) });
                 continue;
             }
             Err(_) => {}
         }
         if word.txt.starts_with('"') && word.txt.ends_with('"') {
             let content = word.txt.clone();
-            result.push(Token {
+            ctx.result.push(Token {
                 word,
                 op: Op::PushString(String::from(&content[1..content.len() - 1])),
             });
             continue;
         }
-        if word.txt == "true" || word.txt == "false" {
-            let value = word.txt == "true";
-            result.push(Token { word, op: Op::PushBool(value) });
+        //TODO imports here
+        if "true" == word.txt || "false" == word.txt {
+            let value = "true" == word.txt;
+            ctx.result.push(Token { word, op: Op::PushBool(value) });
             continue;
         }
         match get_intrinsic_by_word(&word.txt) {
             Some(intrinsic) => {
-                result.push(Token {
+                ctx.result.push(Token {
                     word,
                     op: Op::Intrinsic(intrinsic),
                 });
@@ -136,16 +163,79 @@ pub fn parse_words_into_tokens(words: Vec<lexer::Word>) -> Vec<Token> {
         }
         match get_operation_by_word(&word.txt) {
             Some(op) => {
-                result.push(Token { word, op });
+                match op {
+                    Op::End => {
+                        let last_block_id = ctx.block_stack.pop().unwrap();
+                        //TODO remove variables here
+                        ctx.result.push(Token { word, op });
+                    }
+                    Op::If => {
+                        if words.is_empty() {
+                            eprintln!("{}: ERROR: Encountered incomplete IF statement", word);
+                            std::process::exit(1);
+                        }
+                        ctx.block_stack.push(ctx.current_block_id);
+                        ctx.current_block_id += 1;
+                        ctx.result.push(Token { word, op });
+                    }
+                    Op::Else => {
+                        if words.is_empty() {
+                            eprintln!("{}: ERROR: Encountered incomplete ELSE statement", word);
+                            std::process::exit(1);
+                        }
+                        ctx.block_stack.push(ctx.current_block_id);
+                        ctx.current_block_id += 1;
+                        ctx.result.push(Token { word, op });
+                    }
+                    Op::While => {
+                        if words.is_empty() {
+                            eprintln!("{}: ERROR: Encountered incomplete WHILE statement", word);
+                            std::process::exit(1);
+                        }
+                        ctx.result.push(Token { word, op });
+                    }
+                    Op::Do => {
+                        if words.is_empty() {
+                            eprintln!("{}: ERROR: Encountered incomplete DO statement", word);
+                            std::process::exit(1);
+                        }
+                        ctx.block_stack.push(ctx.current_block_id);
+                        ctx.current_block_id += 1;
+                        ctx.result.push(Token { word, op });
+                    }
+                    _ => panic!("Encountered unhandled operation: {}", op),
+                }
                 continue;
             }
             None => {}
         }
-
+        if "const" == word.txt {
+            if words.is_empty() {
+                eprintln!("{}: ERROR: Encountered incomplete constant", word);
+                std::process::exit(1);
+            }
+            ctx.block_stack.push(ctx.current_block_id);
+            ctx.current_block_id += 1;
+            let const_name = words.pop().unwrap().txt;
+            ctx.result.push(Token {
+                word,
+                op: Op::Const(const_name.clone()),
+            });
+            ctx.known_constants.push(const_name);
+            continue;
+        }
+        if ctx.known_constants.contains(&word.txt) {
+            let const_name = word.txt.clone();
+            ctx.result.push(Token {
+                word,
+                op: Op::ConstRef(const_name),
+            });
+            continue;
+        }
         eprintln!("Error while parsing word: {:?}", word);
         std::process::exit(1);
     }
-    result
+    ctx
 }
 
 fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {

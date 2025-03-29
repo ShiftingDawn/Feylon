@@ -1,7 +1,7 @@
-use crate::lexer;
 use crate::linker::LinkedTokenData::JumpAddr;
 use crate::tokenizer;
 use crate::tokenizer::{Intrinsic, Op};
+use crate::{checker, lexer};
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone)]
@@ -89,8 +89,8 @@ impl LinkedToken {
     }
 }
 
-pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
-    let mut ctx = LinkerContext::new(tokens);
+pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
+    let mut ctx = LinkerContext::new(parser_context.result);
     ctx.tokens.reverse();
     while !ctx.tokens.is_empty() {
         let token = ctx.tokens.pop().unwrap();
@@ -109,6 +109,18 @@ pub fn link_tokens(tokens: Vec<tokenizer::Token>) -> LinkerContext {
             }
             Op::Intrinsic(val) => {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Intrinsic(*val));
+                ctx.result.push(new_token);
+            }
+            Op::Const(_) => panic!("Constants should have been removed during evaluation"),
+            Op::ConstRef(name) => {
+                let def = parser_context.constants.get(name).unwrap_or_else(|| {
+                    eprintln!("{}: ERROR: Encountered a reference to a nonexistent constant '{}'", token.word, name);
+                    std::process::exit(1);
+                });
+                let new_token = match def.typ {
+                    checker::DataType::INT => LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushInt(def.val)),
+                    _ => panic!("Encountered unimplemented datatype '{}' of constant '{}'", def.typ, name),
+                };
                 ctx.result.push(new_token);
             }
             Op::End => {

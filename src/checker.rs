@@ -3,8 +3,8 @@ use crate::{lexer, linker, tokenizer};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, PartialEq, Debug)]
-enum DataType {
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum DataType {
     INT,
     BOOL,
     PTR,
