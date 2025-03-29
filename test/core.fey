@@ -36,3 +36,8 @@ end
 
 1338 dump
 cheese
+
+import "../std.fey"
+
+10 print
+11 print

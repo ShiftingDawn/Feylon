@@ -72,7 +72,7 @@ pub fn test_program(self_path: String, file_path: String) {
 }
 
 fn parse_test_file(file: &str) -> TestFile {
-    match read_file_contents(file) {
+    match read_file_contents(file, None) {
         Ok(mut contents) => {
             contents.reverse();
             let exit_code: i32 = contents

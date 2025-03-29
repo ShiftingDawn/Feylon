@@ -1,6 +1,5 @@
 use crate::checker::TypedPos;
-use crate::lexer::Word;
-use crate::{checker, lexer};
+use crate::{checker, lexer, read_file_contents};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
@@ -166,145 +165,159 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
     };
     while !words.is_empty() {
         let word = words.pop().unwrap();
-        match word.txt.parse::<u32>() {
-            Ok(x) => {
-                ctx.result.push(Token { word, op: Op::PushInt(x) });
-                continue;
-            }
-            Err(_) => {}
-        }
-        if word.txt.starts_with('"') && word.txt.ends_with('"') {
-            let content = word.txt.clone();
-            ctx.result.push(Token {
-                word,
-                op: Op::PushString(String::from(&content[1..content.len() - 1])),
-            });
-            continue;
-        }
-        //TODO imports here
-        if "true" == word.txt || "false" == word.txt {
-            let value = "true" == word.txt;
-            ctx.result.push(Token { word, op: Op::PushBool(value) });
-            continue;
-        }
-        match get_intrinsic_by_word(&word.txt) {
-            Some(intrinsic) => {
-                ctx.result.push(Token {
-                    word,
-                    op: Op::Intrinsic(intrinsic),
-                });
-                continue;
-            }
-            None => {}
-        }
-        match get_operation_by_word(&word.txt) {
-            Some(op) => {
-                match op {
-                    Op::End => {
-                        let last_block_id = ctx.block_stack.pop().unwrap();
-                        //TODO remove variables here
-                        ctx.result.push(Token { word, op });
-                    }
-                    Op::If => {
-                        if words.is_empty() {
-                            eprintln!("{}: ERROR: Encountered incomplete IF statement", word);
-                            std::process::exit(1);
-                        }
-                        ctx.block_stack.push(ctx.current_block_id);
-                        ctx.current_block_id += 1;
-                        ctx.result.push(Token { word, op });
-                    }
-                    Op::Else => {
-                        if words.is_empty() {
-                            eprintln!("{}: ERROR: Encountered incomplete ELSE statement", word);
-                            std::process::exit(1);
-                        }
-                        ctx.block_stack.push(ctx.current_block_id);
-                        ctx.current_block_id += 1;
-                        ctx.result.push(Token { word, op });
-                    }
-                    Op::While => {
-                        if words.is_empty() {
-                            eprintln!("{}: ERROR: Encountered incomplete WHILE statement", word);
-                            std::process::exit(1);
-                        }
-                        ctx.result.push(Token { word, op });
-                    }
-                    Op::Do => {
-                        if words.is_empty() {
-                            eprintln!("{}: ERROR: Encountered incomplete DO statement", word);
-                            std::process::exit(1);
-                        }
-                        ctx.block_stack.push(ctx.current_block_id);
-                        ctx.current_block_id += 1;
-                        ctx.result.push(Token { word, op });
-                    }
-                    _ => panic!("Encountered unhandled operation: {}", op),
-                }
-                continue;
-            }
-            None => {}
-        }
-        if "const" == word.txt {
-            if words.is_empty() {
-                eprintln!("{}: ERROR: Encountered incomplete constant", word);
-                std::process::exit(1);
-            }
-            ctx.block_stack.push(ctx.current_block_id);
-            ctx.current_block_id += 1;
-            let const_name = words.pop().unwrap().txt;
-            ctx.result.push(Token {
-                word,
-                op: Op::Const(const_name.clone()),
-            });
-            ctx.known_constants.push(const_name);
-            continue;
-        }
-        if "memory" == word.txt {
-            if words.is_empty() {
-                eprintln!("{}: ERROR: Encountered incomplete memory definition", word);
-                std::process::exit(1);
-            }
-            ctx.block_stack.push(ctx.current_block_id);
-            ctx.current_block_id += 1;
-            let mem_name = words.pop().unwrap().txt;
-            ctx.result.push(Token {
-                word,
-                op: Op::Mem(mem_name.clone()),
-            });
-            ctx.known_memories.push(mem_name);
-            continue;
-        }
-        if "function" == word.txt {
-            if words.is_empty() {
-                eprintln!("{}: ERROR: Encountered incomplete function signature", word);
-                std::process::exit(1);
-            }
-            ctx.block_stack.push(ctx.current_block_id);
-            ctx.current_block_id += 1;
-            let function_token = parse_function(&mut ctx, &mut words, &word);
-            ctx.result.push(function_token);
-            continue;
-        }
-        if ctx.known_constants.contains(&word.txt) {
-            let name = word.txt.clone();
-            ctx.result.push(Token { word, op: Op::ConstRef(name) });
-            continue;
-        }
-        if ctx.known_memories.contains(&word.txt) {
-            let name = word.txt.clone();
-            ctx.result.push(Token { word, op: Op::MemRef(name) });
-            continue;
-        }
-        if ctx.functions.contains_key(&word.txt) {
-            let name = word.txt.clone();
-            ctx.result.push(Token { word, op: Op::FunctionRef(name) });
-            continue;
-        }
-        eprintln!("{}: ERROR: Unknown word: '{}'", word, word.txt);
-        std::process::exit(1);
+        match parse_word_into_token(&mut ctx, &mut words, word) {
+            Some(token) => ctx.result.push(token),
+            _ => {}
+        };
     }
     ctx
+}
+
+fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, word: lexer::Word) -> Option<Token> {
+    match word.txt.parse::<u32>() {
+        Ok(x) => {
+            return Some(Token { word, op: Op::PushInt(x) });
+        }
+        Err(_) => {}
+    }
+    if word.txt.starts_with('"') && word.txt.ends_with('"') {
+        let content = word.txt.clone();
+        return Some(Token {
+            word,
+            op: Op::PushString(String::from(&content[1..content.len() - 1])),
+        });
+    }
+    if "import" == word.txt {
+        if words.is_empty() {
+            eprintln!("{}: ERROR: Encountered import without path", word);
+            std::process::exit(1);
+        }
+        let next_word = words.pop().unwrap();
+        let next_token = parse_word_into_token(ctx, words, next_word).unwrap();
+        match next_token.op {
+            Op::PushString(path) => {
+                handle_import(words, next_token.word, path);
+                return None;
+            }
+            _ => {
+                eprintln!("{}: ERROR: Expected import path as string, got: '{}'", word, next_token.word.txt);
+                std::process::exit(1);
+            }
+        }
+    }
+    if "true" == word.txt || "false" == word.txt {
+        let value = "true" == word.txt;
+        return Some(Token { word, op: Op::PushBool(value) });
+    }
+    match get_intrinsic_by_word(&word.txt) {
+        Some(intrinsic) => {
+            return Some(Token {
+                word,
+                op: Op::Intrinsic(intrinsic),
+            });
+        }
+        None => {}
+    }
+    match get_operation_by_word(&word.txt) {
+        Some(op) => {
+            match op {
+                Op::End => {
+                    let last_block_id = ctx.block_stack.pop().unwrap();
+                    //TODO remove variables here
+                    return Some(Token { word, op });
+                }
+                Op::If => {
+                    if words.is_empty() {
+                        eprintln!("{}: ERROR: Encountered incomplete IF statement", word);
+                        std::process::exit(1);
+                    }
+                    ctx.block_stack.push(ctx.current_block_id);
+                    ctx.current_block_id += 1;
+                    return Some(Token { word, op });
+                }
+                Op::Else => {
+                    if words.is_empty() {
+                        eprintln!("{}: ERROR: Encountered incomplete ELSE statement", word);
+                        std::process::exit(1);
+                    }
+                    ctx.block_stack.push(ctx.current_block_id);
+                    ctx.current_block_id += 1;
+                    return Some(Token { word, op });
+                }
+                Op::While => {
+                    if words.is_empty() {
+                        eprintln!("{}: ERROR: Encountered incomplete WHILE statement", word);
+                        std::process::exit(1);
+                    }
+                    return Some(Token { word, op });
+                }
+                Op::Do => {
+                    if words.is_empty() {
+                        eprintln!("{}: ERROR: Encountered incomplete DO statement", word);
+                        std::process::exit(1);
+                    }
+                    ctx.block_stack.push(ctx.current_block_id);
+                    ctx.current_block_id += 1;
+                    return Some(Token { word, op });
+                }
+                _ => panic!("Encountered unhandled operation: {}", op),
+            }
+        }
+        None => {}
+    }
+    if "const" == word.txt {
+        if words.is_empty() {
+            eprintln!("{}: ERROR: Encountered incomplete constant", word);
+            std::process::exit(1);
+        }
+        ctx.block_stack.push(ctx.current_block_id);
+        ctx.current_block_id += 1;
+        let const_name = words.pop().unwrap().txt;
+        let token = Token {
+            word,
+            op: Op::Const(const_name.clone()),
+        };
+        ctx.known_constants.push(const_name);
+        return Some(token);
+    }
+    if "memory" == word.txt {
+        if words.is_empty() {
+            eprintln!("{}: ERROR: Encountered incomplete memory definition", word);
+            std::process::exit(1);
+        }
+        ctx.block_stack.push(ctx.current_block_id);
+        ctx.current_block_id += 1;
+        let mem_name = words.pop().unwrap().txt;
+        let token = Token {
+            word,
+            op: Op::Mem(mem_name.clone()),
+        };
+        ctx.known_memories.push(mem_name);
+        return Some(token);
+    }
+    if "function" == word.txt {
+        if words.is_empty() {
+            eprintln!("{}: ERROR: Encountered incomplete function signature", word);
+            std::process::exit(1);
+        }
+        ctx.block_stack.push(ctx.current_block_id);
+        ctx.current_block_id += 1;
+        return Some(parse_function(ctx, words, &word));
+    }
+    if ctx.known_constants.contains(&word.txt) {
+        let name = word.txt.clone();
+        return Some(Token { word, op: Op::ConstRef(name) });
+    }
+    if ctx.known_memories.contains(&word.txt) {
+        let name = word.txt.clone();
+        return Some(Token { word, op: Op::MemRef(name) });
+    }
+    if ctx.functions.contains_key(&word.txt) {
+        let name = word.txt.clone();
+        return Some(Token { word, op: Op::FunctionRef(name) });
+    }
+    eprintln!("{}: ERROR: Unknown word: '{}'", word, word.txt);
+    std::process::exit(1);
 }
 
 fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
@@ -352,7 +365,7 @@ fn get_operation_by_word(word: &str) -> Option<Op> {
     }
 }
 
-fn parse_function(ctx: &mut ParserContext, words: &mut Vec<Word>, function_word: &Word) -> Token {
+fn parse_function(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, function_word: &lexer::Word) -> Token {
     let mut next_word = words.pop().unwrap();
     if next_word.txt.contains("\"") || next_word.txt.contains("\'") {
         eprintln!("{}: ERROR: Function name cannot contain any quotes", next_word);
@@ -398,7 +411,7 @@ fn parse_function(ctx: &mut ParserContext, words: &mut Vec<Word>, function_word:
             }
             i += 1;
         }
-        if (ptr > 0) {
+        if ptr > 0 {
             parts.push(lexer::Word {
                 file: next_word.file.clone(),
                 row: next_word.row,
@@ -422,7 +435,7 @@ fn parse_function(ctx: &mut ParserContext, words: &mut Vec<Word>, function_word:
             let data_type = checker::get_data_type_by_text(&part.txt);
             match data_type {
                 Some(typ) => {
-                    if (input) {
+                    if input {
                         ins.push(TypedPos { word: part, typ: typ.clone() });
                     } else {
                         outs.push(TypedPos { word: part, typ: typ.clone() });
@@ -442,12 +455,28 @@ fn parse_function(ctx: &mut ParserContext, words: &mut Vec<Word>, function_word:
     }
     ctx.functions.insert(func_name_word.txt.clone(), FunctionDef { ins, outs });
     Token {
-        word: Word {
+        word: lexer::Word {
             file: function_word.file.clone(),
             row: function_word.row,
             col: function_word.col,
             txt: func_name_word.txt.clone(),
         },
         op: Op::Function(func_name_word.txt.clone()),
+    }
+}
+
+fn handle_import(words: &mut Vec<lexer::Word>, word: lexer::Word, path: String) {
+    let lines = read_file_contents(&path, Some(&word.file));
+    match lines {
+        Ok(lines) => {
+            let mut imported_words = lexer::parse_lines_into_words(word.file.clone(), lines);
+            imported_words.reverse();
+            words.append(&mut imported_words);
+        }
+        Err(err) => {
+            eprintln!("{}: ERROR: Could not import '{}'", word, word.txt);
+            eprintln!("{}", err);
+            std::process::exit(1);
+        }
     }
 }

@@ -1,6 +1,7 @@
 use crate::linker::LinkerContext;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use std::path::Path;
 
 mod bytewriter;
 mod checker;
@@ -20,7 +21,7 @@ fn main() {
 
     let last_arg = args.pop().unwrap();
     match args[1].as_str() {
-        "simulate" => match read_file_contents(&last_arg) {
+        "simulate" => match read_file_contents(&last_arg, None) {
             Ok(lines) => {
                 let program = compile_program(last_arg.clone(), lines, false);
                 simulator::simulate_tokens(program);
@@ -31,7 +32,7 @@ fn main() {
                 eprintln!("ERROR: {}", err);
             }
         },
-        "compile" => match read_file_contents(&last_arg) {
+        "compile" => match read_file_contents(&last_arg, None) {
             Ok(lines) => {
                 let skip_typecheck = args.len() >= 3 && args[2].as_str() == "--unsafe";
                 let program = compile_program(last_arg.clone(), lines, skip_typecheck);
@@ -72,8 +73,12 @@ fn usage(self_path: &str) {
     println!("      --built-in  Run the built-in test program. Does not need a file path.");
 }
 
-pub fn read_file_contents(path: &str) -> io::Result<Vec<String>> {
-    let file = File::open(path)?;
+pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Result<Vec<String>> {
+    let file_path = match relative_parent {
+        Some(parent) => Path::new(parent).parent().unwrap_or_else(|| Path::new("")).join(path),
+        None => Path::new(path).to_path_buf(),
+    };
+    let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut lines = Vec::new();
     for line in reader.lines() {
