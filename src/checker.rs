@@ -6,8 +6,8 @@ use std::fmt::{Display, Formatter};
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum DataType {
     INT,
-    BOOL,
     PTR,
+    BOOL,
 }
 
 impl Display for DataType {
@@ -54,6 +54,13 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::INT,
+                });
+                ctx.ptr += 1;
+            }
+            Instruction::PushPtr(_) => {
+                ctx.stack.push(TypedPos {
+                    word: op.word.clone(),
+                    typ: DataType::PTR,
                 });
                 ctx.ptr += 1;
             }
@@ -299,17 +306,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                             }],
                         );
                     }
-                    tokenizer::Intrinsic::Mem => {
-                        check_signature(
-                            &op,
-                            ctx,
-                            vec![Signature {
-                                ins: vec![],
-                                outs: vec![tp(&op.word, DataType::PTR)],
-                            }],
-                        );
-                    }
-                    tokenizer::Intrinsic::MemSet => {
+                    tokenizer::Intrinsic::Store8 | tokenizer::Intrinsic::Store16 | tokenizer::Intrinsic::Store32 => {
                         check_signature(
                             &op,
                             ctx,
@@ -319,7 +316,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                             }],
                         );
                     }
-                    tokenizer::Intrinsic::MemGet => {
+                    tokenizer::Intrinsic::Load8 | tokenizer::Intrinsic::Load16 | tokenizer::Intrinsic::Load32 => {
                         check_signature(
                             &op,
                             ctx,
@@ -332,7 +329,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 };
                 ctx.ptr += 1;
             }
-            Instruction::JumpEq | Instruction::JumpNeq => {
+            Instruction::JumpNeq => {
                 check_signature(
                     &op,
                     ctx,

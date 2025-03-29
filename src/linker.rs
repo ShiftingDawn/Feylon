@@ -13,13 +13,13 @@ pub enum LinkedTokenData {
 
 pub enum Instruction {
     PushInt(u32),
+    PushPtr(usize),
     PushBool(bool),
     PushString(String),
 
     Intrinsic(Intrinsic),
 
     Jump,
-    JumpEq,
     JumpNeq,
     Do,
 }
@@ -28,13 +28,13 @@ impl Display for Instruction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let txt = match self {
             Instruction::PushInt(_) => "PUSH_INT",
+            Instruction::PushPtr(_) => "PUSH_POINTER",
             Instruction::PushBool(_) => "PUSH_BOOL",
             Instruction::PushString(_) => "PUSH_STRING",
 
             Instruction::Intrinsic(_) => "INTRINSIC",
 
             Instruction::Jump => "JUMP",
-            Instruction::JumpEq => "JUMP_EQ",
             Instruction::JumpNeq => "JUMP_NEQ",
             Instruction::Do => "DO",
         };
@@ -58,12 +58,12 @@ pub struct LinkerContext {
 }
 
 impl LinkerContext {
-    pub const fn new(tokens: Vec<tokenizer::Token>) -> LinkerContext {
+    pub const fn new(tokens: Vec<tokenizer::Token>, mem_size: usize) -> LinkerContext {
         LinkerContext {
             tokens,
             result: vec![],
             call_stack: vec![],
-            mem_size: 0,
+            mem_size,
             pointer: 0,
         }
     }
@@ -90,13 +90,17 @@ impl LinkedToken {
 }
 
 pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
-    let mut ctx = LinkerContext::new(parser_context.result);
+    let mut ctx = LinkerContext::new(parser_context.result, parser_context.total_memory_size);
     ctx.tokens.reverse();
     while !ctx.tokens.is_empty() {
         let token = ctx.tokens.pop().unwrap();
         match &token.op {
             Op::PushInt(val) => {
                 let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushInt(*val));
+                ctx.result.push(new_token);
+            }
+            Op::PushPtr(val) => {
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushPtr(*val));
                 ctx.result.push(new_token);
             }
             Op::PushBool(val) => {
@@ -112,6 +116,7 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 ctx.result.push(new_token);
             }
             Op::Const(_) => panic!("Constants should have been removed during evaluation"),
+            Op::Mem(_) => panic!("memories should have been removed during evaluation"),
             Op::ConstRef(name) => {
                 let def = parser_context.constants.get(name).unwrap_or_else(|| {
                     eprintln!("{}: ERROR: Encountered a reference to a nonexistent constant '{}'", token.word, name);
@@ -119,8 +124,19 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 });
                 let new_token = match def.typ {
                     checker::DataType::INT => LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushInt(def.val)),
-                    _ => panic!("Encountered unimplemented datatype '{}' of constant '{}'", def.typ, name),
+                    _ => panic!("Encountered unimplemented datatype '{}' of constant '{}'. This is a evaluation error.", def.typ, name),
                 };
+                ctx.result.push(new_token);
+            }
+            Op::MemRef(name) => {
+                let def = parser_context.memories.get(name).unwrap_or_else(|| {
+                    eprintln!(
+                        "{}: ERROR: Encountered a reference to a nonexistent memory '{}'. This is a evaluation error.",
+                        token.word, name
+                    );
+                    std::process::exit(1);
+                });
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushPtr(def.ptr));
                 ctx.result.push(new_token);
             }
             Op::End => {
@@ -135,7 +151,7 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 }
                 let ref_token = &mut ctx.result[ref_ptr];
                 match &ref_token.instruction {
-                    Instruction::Jump | Instruction::JumpEq | Instruction::JumpNeq => {
+                    Instruction::Jump | Instruction::JumpNeq => {
                         ref_token.data = JumpAddr(ctx.pointer);
                     }
                     Instruction::Do => {

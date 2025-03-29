@@ -2,11 +2,10 @@ use crate::linker;
 use crate::linker::LinkedTokenData;
 use crate::tokenizer::Intrinsic;
 
-const MEM_OFFSET: usize = 65536;
-
 pub fn simulate_tokens(linker_context: linker::LinkerContext) {
     let mut stack: Vec<u32> = vec![];
-    let mut memory: [u8; 131072] = [0; 131072];
+    let mut mem: Vec<u8> = vec![0; linker_context.mem_size];
+    let mut string_pool = [0; 65536];
     let mut string_ptr = 0;
     let mut program_counter: usize = 0;
 
@@ -17,6 +16,10 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 stack.push(*x);
                 program_counter += 1;
             }
+            linker::Instruction::PushPtr(x) => {
+                stack.push(*x as u32);
+                program_counter += 1;
+            }
             linker::Instruction::PushBool(x) => {
                 stack.push(if *x { 1 } else { 0 });
                 program_counter += 1;
@@ -24,10 +27,9 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
             linker::Instruction::PushString(x) => {
                 let str_as_chars = x.as_bytes();
                 let strlen = str_as_chars.len();
-                let addr = MEM_OFFSET + string_ptr;
-                memory[addr..addr + strlen].copy_from_slice(str_as_chars);
+                string_pool[string_ptr..string_ptr + strlen].copy_from_slice(str_as_chars);
                 stack.push(strlen as u32);
-                stack.push(addr as u32);
+                stack.push(string_ptr as u32);
                 string_ptr += strlen;
                 program_counter += 1;
             }
@@ -141,29 +143,50 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                         let b = stack.pop().unwrap();
                         stack.push(if b >= a { 1 } else { 0 });
                     }
-                    Intrinsic::Mem => {
-                        stack.push(0);
-                    }
-                    Intrinsic::MemSet => {
+                    Intrinsic::Store8 => {
                         let a = stack.pop().unwrap();
-                        let ptr = stack.pop().unwrap();
-                        memory[ptr as usize] = a as u8;
+                        let ptr = stack.pop().unwrap() as usize;
+                        mem[ptr] = a as u8;
                     }
-                    Intrinsic::MemGet => {
-                        let ptr = stack.pop().unwrap();
-                        let x = memory[ptr as usize];
-                        stack.push(x as u32);
+                    Intrinsic::Store16 => {
+                        let a = stack.pop().unwrap();
+                        let ptr = stack.pop().unwrap() as usize;
+                        mem[ptr] = a as u8;
+                        mem[ptr + 1] = (a >> 8) as u8;
+                    }
+                    Intrinsic::Store32 => {
+                        let a = stack.pop().unwrap();
+                        let ptr = stack.pop().unwrap() as usize;
+                        mem[ptr] = a as u8;
+                        mem[ptr + 1] = (a >> 8) as u8;
+                        mem[ptr + 2] = (a >> 16) as u8;
+                        mem[ptr + 3] = (a >> 24) as u8;
+                    }
+                    Intrinsic::Load8 => {
+                        let ptr = stack.pop().unwrap() as usize;
+                        let x = mem[ptr] as u32;
+                        stack.push(x);
+                    }
+                    Intrinsic::Load16 => {
+                        let ptr = stack.pop().unwrap() as usize;
+                        let mut x = mem[ptr] as u32;
+                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
+                        stack.push(x);
+                    }
+                    Intrinsic::Load32 => {
+                        let ptr = stack.pop().unwrap() as usize;
+                        let mut x = mem[ptr] as u32;
+                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
+                        x = x | (((mem[ptr + 2] & 0xFF) as u32) << 16);
+                        x = x | (((mem[ptr + 3] & 0xFF) as u32) << 24);
+                        stack.push(x);
                     }
                 }
                 program_counter += 1;
             }
-            linker::Instruction::JumpEq | linker::Instruction::JumpNeq => {
+            linker::Instruction::JumpNeq => {
                 let flag = stack.pop().unwrap();
-                let expected_flag = match &op.instruction {
-                    linker::Instruction::JumpEq => 1,
-                    _ => 0,
-                };
-                if flag == expected_flag {
+                if flag == 0 {
                     match op.data {
                         LinkedTokenData::JumpAddr(ptr) => {
                             program_counter = ptr;

@@ -5,9 +5,6 @@
 50 10 / dump    // 5
 14 8 % dump     // 6
 
-mem 7 memset    // Nothing
-mem memget dump // 7
-
 "Hello, Feylon!" dump dump      //65536 14
 
 true dump   // 1
@@ -28,3 +25,7 @@ const TEST 34 end
 const TEST2 35 end
 const TEST3 TEST TEST2 + end
 TEST3 dump
+
+memory MEMA 64 end
+MEMA 16 store8
+MEMA load8 dump

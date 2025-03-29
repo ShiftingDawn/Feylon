@@ -11,7 +11,6 @@ where
     pos
 }
 
-#[derive(Debug)]
 pub struct Word {
     file: String,
     row: u32,

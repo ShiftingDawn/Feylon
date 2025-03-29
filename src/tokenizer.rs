@@ -7,10 +7,18 @@ pub struct ConstDef {
     pub val: u32,
 }
 
+pub struct MemoryDef {
+    pub ptr: usize,
+    pub size: usize,
+}
+
 pub struct ParserContext {
     pub result: Vec<Token>,
     pub constants: HashMap<String, ConstDef>,
+    pub memories: HashMap<String, MemoryDef>,
+    pub total_memory_size: usize,
     known_constants: Vec<String>,
+    known_memories: Vec<String>,
     block_stack: Vec<usize>,
     current_block_id: usize,
 }
@@ -22,12 +30,15 @@ pub struct Token {
 
 pub enum Op {
     PushInt(u32),
+    PushPtr(usize),
     PushBool(bool),
     PushString(String),
 
     Intrinsic(Intrinsic),
     Const(String),
     ConstRef(String),
+    Mem(String),
+    MemRef(String),
 
     End,
     If,
@@ -60,21 +71,27 @@ pub enum Intrinsic {
     Greater,
     LessOrEqual,
     GreaterOrEqual,
-    Mem,
-    MemSet,
-    MemGet,
+    Store8,
+    Store16,
+    Store32,
+    Load8,
+    Load16,
+    Load32,
 }
 
 impl Display for Op {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let txt = match self {
             Op::PushInt(_) => "PUSH_INT",
+            Op::PushPtr(_) => "PUSH_PTR",
             Op::PushBool(_) => "PUSH_BOOL",
             Op::PushString(_) => "PUSH_STRING",
 
             Op::Intrinsic(_) => "INTRINSIC",
             Op::Const(_) => "CONST",
             Op::ConstRef(_) => "CONST_REF",
+            Op::Mem(_) => "CONST",
+            Op::MemRef(_) => "CONST_REF",
 
             Op::End => "END",
             Op::If => "IF",
@@ -111,9 +128,12 @@ impl Display for Intrinsic {
             Intrinsic::Greater => "GREATER",
             Intrinsic::LessOrEqual => "LESS_OR_EQUAL",
             Intrinsic::GreaterOrEqual => "GREATER_OR_EQUAL",
-            Intrinsic::Mem => "MEM",
-            Intrinsic::MemSet => "MEMSET",
-            Intrinsic::MemGet => "MEMGET",
+            Intrinsic::Store8 => "STORE_8",
+            Intrinsic::Store16 => "STORE_16",
+            Intrinsic::Store32 => "STORE_32",
+            Intrinsic::Load8 => "LOAD_8",
+            Intrinsic::Load16 => "LOAD_16",
+            Intrinsic::Load32 => "LOAD_32",
         };
         write!(f, "{}", txt)
     }
@@ -124,7 +144,10 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
     let mut ctx = ParserContext {
         result: vec![],
         constants: HashMap::new(),
+        memories: HashMap::new(),
+        total_memory_size: 0,
         known_constants: vec![],
+        known_memories: vec![],
         block_stack: vec![],
         current_block_id: 0,
     };
@@ -224,15 +247,32 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
             ctx.known_constants.push(const_name);
             continue;
         }
-        if ctx.known_constants.contains(&word.txt) {
-            let const_name = word.txt.clone();
+        if "memory" == word.txt {
+            if words.is_empty() {
+                eprintln!("{}: ERROR: Encountered incomplete memory definition", word);
+                std::process::exit(1);
+            }
+            ctx.block_stack.push(ctx.current_block_id);
+            ctx.current_block_id += 1;
+            let mem_name = words.pop().unwrap().txt;
             ctx.result.push(Token {
                 word,
-                op: Op::ConstRef(const_name),
+                op: Op::Mem(mem_name.clone()),
             });
+            ctx.known_memories.push(mem_name);
             continue;
         }
-        eprintln!("Error while parsing word: {:?}", word);
+        if ctx.known_constants.contains(&word.txt) {
+            let name = word.txt.clone();
+            ctx.result.push(Token { word, op: Op::ConstRef(name) });
+            continue;
+        }
+        if ctx.known_memories.contains(&word.txt) {
+            let name = word.txt.clone();
+            ctx.result.push(Token { word, op: Op::MemRef(name) });
+            continue;
+        }
+        eprintln!("{}: ERROR: Unknown word: '{}'", word, word.txt);
         std::process::exit(1);
     }
     ctx
@@ -262,9 +302,12 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
         ">" => Some(Intrinsic::Greater),
         "<=" => Some(Intrinsic::LessOrEqual),
         ">=" => Some(Intrinsic::GreaterOrEqual),
-        "mem" => Some(Intrinsic::Mem),
-        "memset" => Some(Intrinsic::MemSet),
-        "memget" => Some(Intrinsic::MemGet),
+        "store8" | "store" => Some(Intrinsic::Store8),
+        "store16" => Some(Intrinsic::Store16),
+        "store32" => Some(Intrinsic::Store32),
+        "load8" | "load" => Some(Intrinsic::Load8),
+        "load16" => Some(Intrinsic::Load16),
+        "load32" => Some(Intrinsic::Load32),
         _ => None,
     }
 }
