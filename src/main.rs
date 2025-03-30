@@ -14,27 +14,23 @@ mod tokenizer;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
-    if args.len() < 3 {
-        usage(&args[0]);
+    let self_path = args.remove(0);
+    if args.len() == 0 {
+        usage(&self_path);
         std::process::exit(0);
     }
 
+    let command = match args[0].as_str() {
+        "compile" => "compile",
+        "test" => "test",
+        _ => "simulate",
+    };
     let last_arg = args.pop().unwrap();
-    match args[1].as_str() {
-        "simulate" => match read_file_contents(&last_arg, None) {
-            Ok(lines) => {
-                let program = compile_program(last_arg.clone(), lines, false);
-                simulator::simulate_tokens(program);
-                std::process::exit(0);
-            }
-            Err(err) => {
-                eprintln!("ERROR: Could not load program {}!", last_arg);
-                eprintln!("ERROR: {}", err);
-            }
-        },
+    match command {
+        "simulate" => simulate_program(&last_arg),
         "compile" => match read_file_contents(&last_arg, None) {
             Ok(lines) => {
-                let skip_typecheck = args.len() >= 3 && args[2].as_str() == "--unsafe";
+                let skip_typecheck = args.contains(&"--unsafe".to_string());
                 let program = compile_program(last_arg.clone(), lines, skip_typecheck);
                 bytewriter::write_parsed_program_to_file(&last_arg, &program);
                 std::process::exit(0);
@@ -49,15 +45,30 @@ fn main() {
                 run_builtin_test();
                 std::process::exit(0);
             } else {
-                test::test_program(args[0].clone(), last_arg);
+                test::test_program(self_path, last_arg);
                 std::process::exit(0);
             }
         }
         _ => {
-            usage(&args[0]);
+            usage(&self_path);
             std::process::exit(0);
         }
     };
+}
+
+fn simulate_program(path: &String) {
+    match read_file_contents(&path, None) {
+        Ok(lines) => {
+            let program = compile_program(path.clone(), lines, false);
+            simulator::simulate_tokens(program);
+            std::process::exit(0);
+        }
+        Err(err) => {
+            eprintln!("ERROR: Could not load program {}!", path);
+            eprintln!("ERROR: {}", err);
+        }
+    }
+    std::process::exit(0);
 }
 
 fn usage(self_path: &str) {

@@ -53,11 +53,23 @@ pub fn parse_lines_into_words(file: String, source_lines: Vec<String>) -> Vec<Wo
         result: vec![],
         line: "",
     };
+    if !ctx.lines.is_empty() && ctx.lines.first().unwrap().starts_with("#!") {
+        ctx.lines.remove(0);
+    }
     ctx.lines.reverse();
     while !ctx.lines.is_empty() {
         ctx.line = ctx.lines.pop().unwrap();
         ctx.row += 1;
         ctx.pos = find_char(&ctx.line, 0, |x| !x.is_whitespace());
+        if ctx.line.starts_with("#!") {
+            eprintln!(
+                "{}:{}:{}: ERROR: Shebangs/Hashbangs are only allowed to be the first line of the file",
+                ctx.file,
+                ctx.row,
+                ctx.pos + 1
+            );
+            std::process::exit(1);
+        }
         while ctx.pos < ctx.line.len() {
             if ctx.line.chars().nth(ctx.pos).unwrap() == '\'' {
                 parse_char(&mut ctx);
@@ -97,7 +109,7 @@ fn parse_char(ctx: &mut LexerContext) {
         || (ctx.line.chars().nth(ctx.pos + 1).unwrap() != '\\' && end_pos - ctx.pos >= 3)
         || (ctx.line.chars().nth(ctx.pos + 1).unwrap() == '\\' && end_pos - ctx.pos >= 4)
     {
-        eprintln!("{}:{}:{}: ERROR: Encountered invalid character literal", ctx.file, ctx.row + 1, ctx.pos + 1);
+        eprintln!("{}:{}:{}: ERROR: Encountered invalid character literal", ctx.file, ctx.row, ctx.pos + 1);
         std::process::exit(1);
     }
     let val = ctx.line[ctx.pos..end_pos].chars().nth(0).unwrap();
