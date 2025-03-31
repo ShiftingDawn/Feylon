@@ -23,10 +23,12 @@ pub struct ParserContext {
     pub constants: HashMap<String, ConstDef>,
     pub functions: HashMap<String, FunctionDef>,
     pub memories: HashMap<String, MemoryDef>,
+    pub vars: HashMap<usize, Vec<lexer::Word>>,
     pub total_memory_size: usize,
     known_constants: Vec<String>,
     known_memories: Vec<String>,
     block_stack: Vec<usize>,
+    var_stack: Vec<usize>,
     current_block_id: usize,
 }
 
@@ -48,6 +50,8 @@ pub enum Op {
     MemRef(String),
     Function(String),
     FunctionRef(String),
+    Var(usize),
+    VarRef(String),
 
     End,
     If,
@@ -103,6 +107,8 @@ impl Display for Op {
             Op::MemRef(_) => "CONST_REF",
             Op::Function(_) => "FUNCTION",
             Op::FunctionRef(_) => "FUNCTION_REF",
+            Op::Var(_) => "VAR",
+            Op::VarRef(_) => "VAR_REF",
 
             Op::End => "END",
             Op::If => "IF",
@@ -157,10 +163,12 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
         constants: HashMap::new(),
         functions: HashMap::new(),
         memories: HashMap::new(),
+        vars: HashMap::new(),
         total_memory_size: 0,
         known_constants: vec![],
         known_memories: vec![],
         block_stack: vec![],
+        var_stack: vec![],
         current_block_id: 0,
     };
     while !words.is_empty() {
@@ -219,50 +227,51 @@ fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, 
         None => {}
     }
     match get_operation_by_word(&word.txt) {
-        Some(op) => {
-            match op {
-                Op::End => {
-                    let last_block_id = ctx.block_stack.pop().unwrap();
-                    //TODO remove variables here
-                    return Some(Token { word, op });
+        Some(op) => match op {
+            Op::End => {
+                let last_block_id = ctx.block_stack.pop().unwrap();
+                if ctx.var_stack.contains(&last_block_id) {
+                    let index = ctx.var_stack.iter().position(|x| *x == last_block_id).unwrap();
+                    ctx.var_stack.remove(index);
                 }
-                Op::If => {
-                    if words.is_empty() {
-                        eprintln!("{}: ERROR: Encountered incomplete IF statement", word);
-                        std::process::exit(1);
-                    }
-                    ctx.block_stack.push(ctx.current_block_id);
-                    ctx.current_block_id += 1;
-                    return Some(Token { word, op });
-                }
-                Op::Else => {
-                    if words.is_empty() {
-                        eprintln!("{}: ERROR: Encountered incomplete ELSE statement", word);
-                        std::process::exit(1);
-                    }
-                    ctx.block_stack.push(ctx.current_block_id);
-                    ctx.current_block_id += 1;
-                    return Some(Token { word, op });
-                }
-                Op::While => {
-                    if words.is_empty() {
-                        eprintln!("{}: ERROR: Encountered incomplete WHILE statement", word);
-                        std::process::exit(1);
-                    }
-                    return Some(Token { word, op });
-                }
-                Op::Do => {
-                    if words.is_empty() {
-                        eprintln!("{}: ERROR: Encountered incomplete DO statement", word);
-                        std::process::exit(1);
-                    }
-                    ctx.block_stack.push(ctx.current_block_id);
-                    ctx.current_block_id += 1;
-                    return Some(Token { word, op });
-                }
-                _ => panic!("Encountered unhandled operation: {}", op),
+                return Some(Token { word, op });
             }
-        }
+            Op::If => {
+                if words.is_empty() {
+                    eprintln!("{}: ERROR: Encountered incomplete IF statement", word);
+                    std::process::exit(1);
+                }
+                ctx.block_stack.push(ctx.current_block_id);
+                ctx.current_block_id += 1;
+                return Some(Token { word, op });
+            }
+            Op::Else => {
+                if words.is_empty() {
+                    eprintln!("{}: ERROR: Encountered incomplete ELSE statement", word);
+                    std::process::exit(1);
+                }
+                ctx.block_stack.push(ctx.current_block_id);
+                ctx.current_block_id += 1;
+                return Some(Token { word, op });
+            }
+            Op::While => {
+                if words.is_empty() {
+                    eprintln!("{}: ERROR: Encountered incomplete WHILE statement", word);
+                    std::process::exit(1);
+                }
+                return Some(Token { word, op });
+            }
+            Op::Do => {
+                if words.is_empty() {
+                    eprintln!("{}: ERROR: Encountered incomplete DO statement", word);
+                    std::process::exit(1);
+                }
+                ctx.block_stack.push(ctx.current_block_id);
+                ctx.current_block_id += 1;
+                return Some(Token { word, op });
+            }
+            _ => panic!("Encountered unhandled operation: {}", op),
+        },
         None => {}
     }
     if "const" == word.txt {
@@ -304,6 +313,15 @@ fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, 
         ctx.current_block_id += 1;
         return Some(parse_function(ctx, words, &word));
     }
+    if "var" == word.txt {
+        if words.is_empty() {
+            eprintln!("{}: ERROR: Encountered incomplete function signature", word);
+            std::process::exit(1);
+        }
+        ctx.block_stack.push(ctx.current_block_id);
+        ctx.current_block_id += 1;
+        return Some(parse_vars(ctx, words, &word));
+    }
     if ctx.known_constants.contains(&word.txt) {
         let name = word.txt.clone();
         return Some(Token { word, op: Op::ConstRef(name) });
@@ -315,6 +333,20 @@ fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, 
     if ctx.functions.contains_key(&word.txt) {
         let name = word.txt.clone();
         return Some(Token { word, op: Op::FunctionRef(name) });
+    }
+    if !ctx.var_stack.is_empty() {
+        let mut next = ctx.var_stack.clone();
+        while !next.is_empty() {
+            let current_id = next.pop().unwrap();
+            if let Some(vars) = ctx.vars.get(&current_id) {
+                if let Some(found) = vars.iter().find(|x| x.txt == word.txt) {
+                    return Some(Token {
+                        word,
+                        op: Op::VarRef(found.txt.clone()),
+                    });
+                }
+            }
+        }
     }
     eprintln!("{}: ERROR: Unknown word: '{}'", word, word.txt);
     std::process::exit(1);
@@ -462,6 +494,68 @@ fn parse_function(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, functio
             txt: func_name_word.txt.clone(),
         },
         op: Op::Function(func_name_word.txt.clone()),
+    }
+}
+
+fn parse_vars(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, var_word: &lexer::Word) -> Token {
+    let mut next_word = words.pop().unwrap();
+    if next_word.txt.contains("\"") || next_word.txt.contains("\'") {
+        eprintln!("{}: ERROR: Function name cannot contain any quotes", next_word);
+        std::process::exit(1);
+    }
+    let mut parts: Vec<lexer::Word> = vec![];
+    let mut buffer: String = String::from("");
+    let mut ptr: usize = 0;
+    'MainLoop: while !words.is_empty() {
+        let txt = next_word.txt.clone();
+        let mut i = 0;
+        while i < txt.len() {
+            let c = txt.chars().nth(i).unwrap();
+            if c == '(' || c == ' ' || c == ')' {
+                if ptr > 0 {
+                    parts.push(lexer::Word {
+                        file: next_word.file.clone(),
+                        row: next_word.row,
+                        col: next_word.col,
+                        txt: buffer.clone(),
+                    });
+                    buffer = String::from("");
+                    ptr = 0;
+                }
+                if c == ')' {
+                    break 'MainLoop;
+                }
+                i += 1;
+                continue;
+            } else {
+                buffer += &c.to_string();
+                ptr += 1;
+            }
+            i += 1;
+        }
+        if ptr > 0 {
+            parts.push(lexer::Word {
+                file: next_word.file.clone(),
+                row: next_word.row,
+                col: next_word.col,
+                txt: String::from(buffer),
+            });
+            buffer = String::from("");
+            ptr = 0;
+        }
+        next_word = words.pop().unwrap();
+    }
+    let block_id = *ctx.block_stack.last().unwrap();
+    ctx.vars.insert(block_id, parts.clone());
+    ctx.var_stack.push(block_id);
+    Token {
+        word: lexer::Word {
+            file: var_word.file.clone(),
+            row: var_word.row,
+            col: var_word.col,
+            txt: var_word.txt.clone(),
+        },
+        op: Op::Var(block_id),
     }
 }
 

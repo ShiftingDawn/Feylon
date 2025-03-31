@@ -33,6 +33,7 @@ pub struct TypedPos {
 
 struct Context {
     stack: Vec<TypedPos>,
+    vars: Vec<TypedPos>,
     ptr: usize,
     outs: Vec<TypedPos>,
 }
@@ -56,6 +57,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
     let ops = &linker_context.result;
     let mut contexts: Vec<Context> = vec![Context {
         stack: vec![],
+        vars: vec![],
         ptr: 0,
         outs: vec![],
     }];
@@ -349,7 +351,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
             }
             Instruction::Function => match op.data {
                 LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
-                LinkedTokenData::None => {
+                _ => {
                     eprintln!("{}: ERROR: Missing 'end'", op.word);
                     std::process::exit(1);
                 }
@@ -365,6 +367,43 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 check_outputs(ctx, 0);
                 contexts.pop();
             }
+            Instruction::PushVars => match op.data {
+                LinkedTokenData::Count(count) => {
+                    for _ in 0..count {
+                        let val = ctx.stack.pop().unwrap();
+                        ctx.vars.push(val);
+                    }
+                    ctx.ptr += 1;
+                }
+                _ => {
+                    eprintln!("{}: ERROR: Invalid 'vars'", op.word);
+                    std::process::exit(1);
+                }
+            },
+            Instruction::ApplyVar => match op.data {
+                LinkedTokenData::JumpAddr(var_index) => {
+                    let real_index = ctx.vars.len() - 1 - var_index;
+                    let var = ctx.vars[real_index].clone();
+                    ctx.stack.push(var);
+                    ctx.ptr += 1;
+                }
+                _ => {
+                    eprintln!("{}: ERROR: Invalid var '{}'", op.word, op.word.txt);
+                    std::process::exit(1);
+                }
+            },
+            Instruction::PopVars => match op.data {
+                LinkedTokenData::Count(count) => {
+                    for _ in 0..count {
+                        ctx.vars.pop();
+                    }
+                    ctx.ptr += 1;
+                }
+                _ => {
+                    eprintln!("{}: ERROR: Invalid 'vars'", op.word);
+                    std::process::exit(1);
+                }
+            },
             Instruction::JumpNeq => {
                 check_signature(
                     &op,
@@ -379,13 +418,14 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                     LinkedTokenData::JumpAddr(ptr) => {
                         let new_ctx = Context {
                             stack: ctx.stack.clone(),
+                            vars: ctx.vars.clone(),
                             ptr,
                             outs: ctx.outs.clone(),
                         };
                         contexts.push(new_ctx);
                         continue;
                     }
-                    LinkedTokenData::None => {
+                    _ => {
                         eprintln!("{}: ERROR: Missing 'end'", op.word);
                         std::process::exit(1);
                     }
@@ -393,7 +433,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
             }
             Instruction::Jump => match op.data {
                 LinkedTokenData::JumpAddr(ptr) => ctx.ptr = ptr,
-                LinkedTokenData::None => {
+                _ => {
                     eprintln!("{}: ERROR: Missing 'end'", op.word);
                     std::process::exit(1);
                 }
@@ -412,13 +452,14 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                     ctx.ptr += 1;
                     let jump_ptr = match op.data {
                         LinkedTokenData::JumpAddr(ptr) => ptr,
-                        LinkedTokenData::None => {
+                        _ => {
                             eprintln!("{}: ERROR: Encountered 'do' without jump address. This is a linking error!", op.word);
                             std::process::exit(1);
                         }
                     };
                     let new_ctx = Context {
                         stack: ctx.stack.clone(),
+                        vars: ctx.vars.clone(),
                         ptr: jump_ptr,
                         outs: ctx.outs.clone(),
                     };

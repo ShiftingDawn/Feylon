@@ -1,5 +1,5 @@
 use crate::checker::TypedPos;
-use crate::linker::LinkedTokenData::JumpAddr;
+use crate::linker::LinkedTokenData::{Count, JumpAddr};
 use crate::tokenizer;
 use crate::tokenizer::{Intrinsic, Op};
 use crate::{checker, lexer};
@@ -11,6 +11,7 @@ pub enum LinkedTokenData {
     None,
 
     JumpAddr(usize),
+    Count(usize),
 }
 
 pub enum Instruction {
@@ -24,6 +25,9 @@ pub enum Instruction {
     Function,
     Call,
     Return,
+    PushVars,
+    PopVars,
+    ApplyVar,
 
     Jump,
     JumpNeq,
@@ -43,6 +47,9 @@ impl Display for Instruction {
             Instruction::Function => "FUNCTION",
             Instruction::Call => "CALL",
             Instruction::Return => "RETURN",
+            Instruction::PushVars => "PUSH_VARS",
+            Instruction::PopVars => "POP_VARS",
+            Instruction::ApplyVar => "APPLY_VAR",
 
             Instruction::Jump => "JUMP",
             Instruction::JumpNeq => "JUMP_NEQ",
@@ -70,6 +77,8 @@ pub struct LinkerContext {
     pub result: Vec<LinkedToken>,
     pub functions: HashMap<String, FunctionRef>,
     call_stack: Vec<usize>,
+    var_stack: Vec<usize>,
+    var_name_stack: Vec<String>,
     pub mem_size: usize,
     pointer: usize,
 }
@@ -81,6 +90,8 @@ impl LinkerContext {
             result: vec![],
             functions: HashMap::new(),
             call_stack: vec![],
+            var_stack: vec![],
+            var_name_stack: vec![],
             mem_size,
             pointer: 0,
         }
@@ -183,6 +194,28 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::Call, JumpAddr(func_addr));
                 ctx.result.push(new_token);
             }
+            Op::Var(var_block_id) => {
+                ctx.call_stack.push(ctx.pointer);
+                ctx.var_stack.push(*var_block_id);
+                let names = parser_context.vars.get(var_block_id).unwrap();
+                for var_word in names {
+                    ctx.var_name_stack.push(var_word.txt.clone());
+                }
+                let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::PushVars, Count(names.len()));
+                ctx.result.push(new_token);
+            }
+            Op::VarRef(var_name) => {
+                if ctx.var_stack.is_empty() {
+                    eprintln!(
+                        "{}: ERROR: Encountered variable reference statement with an invalid reference. This is a linking error.",
+                        token.word
+                    );
+                    std::process::exit(1);
+                }
+                let var_index = ctx.var_name_stack.iter().position(|x| *x == *var_name).unwrap();
+                let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::ApplyVar, JumpAddr(var_index));
+                ctx.result.push(new_token);
+            }
             Op::End => {
                 if ctx.call_stack.is_empty() {
                     eprintln!("{}: ERROR: Encountered dangling 'end' statement", token.word);
@@ -199,6 +232,21 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                         ref_token.data = JumpAddr(ctx.pointer + 1);
                         let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Return);
                         ctx.result.push(new_token);
+                    }
+                    Instruction::PushVars => {
+                        let var_block_id = ctx.var_stack.pop().unwrap();
+                        let names = parser_context.vars.get(&var_block_id).unwrap();
+                        for var_word in names {
+                            if let Some(index) = ctx.var_name_stack.iter().rposition(|x| *x == var_word.txt) {
+                                ctx.var_name_stack.remove(index);
+                            }
+                        }
+                        if let Count(count) = ref_token.data {
+                            let new_token = LinkedToken::new_with_data(token.word, ctx.incr_ptr(), Instruction::PopVars, Count(count));
+                            ctx.result.push(new_token);
+                        } else {
+                            panic!();
+                        }
                     }
                     Instruction::Jump | Instruction::JumpNeq => {
                         ref_token.data = JumpAddr(ctx.pointer);

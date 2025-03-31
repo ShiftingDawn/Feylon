@@ -1,9 +1,12 @@
-const N 1000 end
-
-0 dup dump
-1 dup dump
-
-while dup N < do
-    swap over
-    + dup dump
-end drop drop
+function fib2(int)          //1 integer input argument
+  var (max)                 //Bind the last item on the stack (func arg) to var 'max'
+    0 1                     //Fibonacci starts with 0 and 1
+    while over max < do     //while the second item on the stack is less than 'max'
+      var (a b)             //Bind the last two items on the stack (fib nums) to vars 'a' and 'b'
+        a dump              //Print a
+        b a b +             //Re-add b to the stack, add a+b and add to the stack
+      end
+    end
+  end drop drop
+end
+4000000 fib2                //Call fib2 function with 1 argument 4000000

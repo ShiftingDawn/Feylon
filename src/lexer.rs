@@ -20,7 +20,7 @@ pub struct Word {
 
 impl Display for Word {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}", self.file, self.row + 1, self.col + 1)
+        write!(f, "{}:{}:{}", self.file, self.row, self.col + 1)
     }
 }
 

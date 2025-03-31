@@ -35,6 +35,7 @@ fn stringify_op(op: &linker::LinkedToken) -> String {
     let add: String = match &op.data {
         linker::LinkedTokenData::None => String::from(""),
         linker::LinkedTokenData::JumpAddr(addr) => format!("addr={}", addr),
+        linker::LinkedTokenData::Count(count) => format!("count={}", count),
     };
     if add.is_empty() { base } else { format!("{}({})", base, add) }
 }

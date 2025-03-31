@@ -27,7 +27,10 @@ fn main() {
     };
     let last_arg = args.pop().unwrap();
     match command {
-        "simulate" => simulate_program(&last_arg),
+        "simulate" => {
+            let skip_typecheck = args.contains(&"--unsafe".to_string());
+            simulate_program(&last_arg, skip_typecheck)
+        }
         "compile" => match read_file_contents(&last_arg, None) {
             Ok(lines) => {
                 let skip_typecheck = args.contains(&"--unsafe".to_string());
@@ -56,10 +59,10 @@ fn main() {
     };
 }
 
-fn simulate_program(path: &String) {
+fn simulate_program(path: &String, skip_typecheck: bool) {
     match read_file_contents(&path, None) {
         Ok(lines) => {
-            let program = compile_program(path.clone(), lines, false);
+            let program = compile_program(path.clone(), lines, skip_typecheck);
             simulator::simulate_tokens(program);
             std::process::exit(0);
         }
