@@ -329,7 +329,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                             &op,
                             ctx,
                             vec![Signature {
-                                ins: vec![tp(&op.word, DataType::PTR), tp(&op.word, DataType::INT)],
+                                ins: vec![tp(&op.word, DataType::INT), tp(&op.word, DataType::PTR)],
                                 outs: vec![],
                             }],
                         );

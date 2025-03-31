@@ -29,7 +29,7 @@ const TEST3 TEST TEST2 + end
 TEST3 dump
 
 memory MEMA 64 end
-MEMA 16 store8
+16 MEMA store8
 MEMA load8 dump
 
 function cheese()

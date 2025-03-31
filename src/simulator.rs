@@ -145,19 +145,19 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                         stack.push(if b >= a { 1 } else { 0 });
                     }
                     Intrinsic::Store8 => {
-                        let a = stack.pop().unwrap();
                         let ptr = stack.pop().unwrap() as usize;
+                        let a = stack.pop().unwrap();
                         mem[ptr] = a as u8;
                     }
                     Intrinsic::Store16 => {
-                        let a = stack.pop().unwrap();
                         let ptr = stack.pop().unwrap() as usize;
+                        let a = stack.pop().unwrap();
                         mem[ptr] = a as u8;
                         mem[ptr + 1] = (a >> 8) as u8;
                     }
                     Intrinsic::Store32 => {
-                        let a = stack.pop().unwrap();
                         let ptr = stack.pop().unwrap() as usize;
+                        let a = stack.pop().unwrap();
                         mem[ptr] = a as u8;
                         mem[ptr + 1] = (a >> 8) as u8;
                         mem[ptr + 2] = (a >> 16) as u8;
