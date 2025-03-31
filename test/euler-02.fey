@@ -1,0 +1,17 @@
+const N 4000000 end
+
+memory MEM 4 end
+0 MEM store32
+
+0 1 while dup N < do
+    swap over
+    +
+    dup 2 % 0 = if
+        dup
+        MEM load32
+        +
+        MEM store32
+    end
+end drop drop
+
+MEM load32 dump

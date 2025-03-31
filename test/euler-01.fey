@@ -1,0 +1,21 @@
+const N 1000 end
+
+memory MEM 4 end
+0 MEM store32
+
+1 while dup N < do
+    dup 3 % 0 = if
+        dup
+        MEM load32
+        +
+        MEM store32
+    else dup 5 % 0 = if
+        dup
+        MEM load32
+        +
+        MEM store32
+    end end
+    1 +
+end drop
+
+MEM load32 dump

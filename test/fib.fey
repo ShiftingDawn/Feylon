@@ -1,0 +1,9 @@
+const N 1000 end
+
+0 dup dump
+1 dup dump
+
+while dup N < do
+    swap over
+    + dup dump
+end drop drop
