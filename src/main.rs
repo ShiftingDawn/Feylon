@@ -41,13 +41,13 @@ fn main() {
             }
         },
         "test" => {
-            if "--built-in" == last_arg {
-                run_builtin_test();
-                std::process::exit(0);
+            let print_output = args.contains(&"--print".to_string());
+            if args.contains(&"--all".to_string()) {
+                test::run_all_tests(self_path, last_arg, print_output)
             } else {
-                test::test_program(self_path, last_arg);
-                std::process::exit(0);
+                test::test_program(self_path, last_arg, print_output);
             }
+            std::process::exit(0);
         }
         _ => {
             usage(&self_path);
@@ -81,7 +81,8 @@ fn usage(self_path: &str) {
     println!("      --unsafe    Skip typechecking");
     println!("  test            Interpret and test the given program");
     println!("    Available options:");
-    println!("      --built-in  Run the built-in test program. Does not need a file path.");
+    println!("      --all       Run all tests in the given directory; file_path must be a directory");
+    println!("      --print     Print the program STDOUT and STDERR");
 }
 
 pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Result<Vec<String>> {
@@ -108,10 +109,4 @@ fn compile_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> Li
         checker::check_types(&linked, 0);
     }
     linked
-}
-
-fn run_builtin_test() {
-    let tokens = compile_program(String::from("<generated>"), vec![String::from("1 2 + dump")], false);
-    checker::check_types(&tokens, 0);
-    simulator::simulate_tokens(tokens);
 }
