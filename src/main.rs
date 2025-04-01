@@ -5,6 +5,7 @@ use std::path::Path;
 
 mod checker;
 mod compiler;
+mod compiler_fasm;
 mod compiler_string;
 mod evaluator;
 mod lexer;
@@ -12,7 +13,6 @@ mod linker;
 mod simulator;
 mod test;
 mod tokenizer;
-mod compiler_asm;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
@@ -36,9 +36,26 @@ fn main() {
         "compile" => match read_file_contents(&last_arg, None) {
             Ok(lines) => {
                 let skip_typecheck = args.contains(&"--unsafe".to_string());
-                let program = compile_program(last_arg.clone(), lines, skip_typecheck);
-                let compiler = compiler_string::new_string_representation_compiler(&last_arg);
-                compiler::compile(compiler, &program);
+                let compiler_id = args
+                    .iter()
+                    .find_map(|x| {
+                        if x.starts_with("--use=") {
+                            let id = x.strip_prefix("--use=").unwrap();
+                            if !compiler::KNOWN_COMPILERS.contains(&id) {
+                                eprintln!("ERROR: Unknown compiler: {}", id);
+                                std::process::exit(1);
+                            }
+                            Some(id)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or_else(|| {
+                        eprintln!("ERROR: Compiler to use was not defined. Use the --use=<id> option");
+                        std::process::exit(1);
+                    });
+                let program = parse_program(last_arg.clone(), lines, skip_typecheck);
+                compiler::compile(compiler_id, &last_arg, &program);
                 std::process::exit(0);
             }
             Err(err) => {
@@ -65,7 +82,7 @@ fn main() {
 fn simulate_program(path: &String, skip_typecheck: bool) {
     match read_file_contents(&path, None) {
         Ok(lines) => {
-            let program = compile_program(path.clone(), lines, skip_typecheck);
+            let program = parse_program(path.clone(), lines, skip_typecheck);
             simulator::simulate_tokens(program);
             std::process::exit(0);
         }
@@ -84,6 +101,7 @@ fn usage(self_path: &str) {
     println!("    Available options:");
     println!("  compile         Compile the given program and write it to disk");
     println!("    Available options:");
+    println!("      --use=<?>   Which compiler to use. Can be one of: {}", compiler::KNOWN_COMPILERS.join(", "));
     println!("      --unsafe    Skip typechecking");
     println!("  test            Interpret and test the given program");
     println!("    Available options:");
@@ -106,7 +124,7 @@ pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Resu
     Ok(lines)
 }
 
-fn compile_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> LinkerContext {
+fn parse_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> LinkerContext {
     let words = lexer::parse_lines_into_words(file, lines);
     let mut tokens = tokenizer::parse_words_into_tokens(words);
     evaluator::evaluate_tokens(&mut tokens);

@@ -1,9 +1,11 @@
-use crate::linker;
+use crate::{compiler_fasm, compiler_string, linker};
 
-pub trait Compiler {
-    fn write_op(&mut self, ctx: &linker::LinkerContext);
-}
+pub const KNOWN_COMPILERS: [&str; 2] = ["string", "fasm"];
 
-pub fn compile(mut compiler: impl Compiler, ctx: &linker::LinkerContext) {
-    compiler.write_op(ctx);
+pub fn compile(id: &str, input_path: &str, ctx: &linker::LinkerContext) {
+    match id {
+        "string" => compiler_string::process_program(input_path, ctx),
+        "fasm" => compiler_fasm::process_program(input_path, ctx),
+        _ => panic!(),
+    }
 }
