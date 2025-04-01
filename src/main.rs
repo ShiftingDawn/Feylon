@@ -3,14 +3,16 @@ use std::fs::File;
 use std::io::{self, BufRead, BufReader};
 use std::path::Path;
 
-mod bytewriter;
 mod checker;
+mod compiler;
+mod compiler_string;
 mod evaluator;
 mod lexer;
 mod linker;
 mod simulator;
 mod test;
 mod tokenizer;
+mod compiler_asm;
 
 fn main() {
     let mut args: Vec<String> = std::env::args().collect();
@@ -35,7 +37,8 @@ fn main() {
             Ok(lines) => {
                 let skip_typecheck = args.contains(&"--unsafe".to_string());
                 let program = compile_program(last_arg.clone(), lines, skip_typecheck);
-                bytewriter::write_parsed_program_to_file(&last_arg, &program);
+                let compiler = compiler_string::new_string_representation_compiler(&last_arg);
+                compiler::compile(compiler, &program);
                 std::process::exit(0);
             }
             Err(err) => {
