@@ -1,6 +1,6 @@
 use crate::linker::LinkerContext;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Read};
 use std::path::Path;
 
 mod checker;
@@ -115,12 +115,9 @@ pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Resu
         None => Path::new(path).to_path_buf(),
     };
     let file = File::open(file_path)?;
-    let reader = BufReader::new(file);
-    let mut lines = Vec::new();
-    for line in reader.lines() {
-        let line = line?;
-        lines.push(line);
-    }
+    let mut content = String::new();
+    BufReader::new(file).read_to_string(&mut content)?;
+    let lines: Vec<String> = content.split("\n").map(|x| x.to_string()).collect();
     Ok(lines)
 }
 

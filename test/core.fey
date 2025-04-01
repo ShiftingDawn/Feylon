@@ -7,8 +7,6 @@
 50 10 / dump    // 5
 14 8 % dump     // 6
 
-"Hello, Feylon!" dump dump      //0 14
-
 true dump   // 1
 false dump  // 0
 

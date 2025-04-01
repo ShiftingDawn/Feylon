@@ -2,8 +2,8 @@ use crate::read_file_contents;
 
 struct TestFile {
     exit_code: i32,
-    stdout: String,
-    stderr: String,
+    stdout: Vec<String>,
+    stderr: Vec<String>,
 }
 
 pub fn test_program(self_path: String, file_path: String, print: bool) {
@@ -36,13 +36,13 @@ pub fn test_program(self_path: String, file_path: String, print: bool) {
                     std::process::exit(1);
                 }
             }
-            match test_text_output(&test_file.stdout, output.stdout) {
-                Some((ok, str)) => {
+            match test_text_output(test_file.stdout.clone(), output.stdout) {
+                Some((ok, strs)) => {
                     if !ok {
                         eprintln!("ERROR: Tested program did not have the same STDOUT as expected");
                         if print {
-                            eprintln!("Expected: {}", test_file.stdout);
-                            eprintln!("Received: {}", str);
+                            eprintln!("Expected: {:?}", test_file.stdout);
+                            eprintln!("Received: {:?}", strs);
                         }
                         std::process::exit(1);
                     }
@@ -52,13 +52,13 @@ pub fn test_program(self_path: String, file_path: String, print: bool) {
                     std::process::exit(1);
                 }
             }
-            match test_text_output(&test_file.stderr, output.stderr) {
-                Some((ok, str)) => {
+            match test_text_output(test_file.stderr.clone(), output.stderr) {
+                Some((ok, strs)) => {
                     if !ok {
                         eprintln!("ERROR: Tested program did not have the same STDERR as expected");
                         if print {
-                            eprintln!("Expected: {}", test_file.stdout);
-                            eprintln!("Received: {}", str);
+                            eprintln!("Expected: {:?}", test_file.stderr);
+                            eprintln!("Received: {:?}", strs);
                         }
                         std::process::exit(1);
                     }
@@ -113,8 +113,8 @@ fn parse_test_file(file: &str) -> TestFile {
             }
             TestFile {
                 exit_code,
-                stdout: out.join("\n"),
-                stderr: err.join("\n"),
+                stdout: out,
+                stderr: err,
             }
         }
         Err(err) => {
@@ -125,9 +125,13 @@ fn parse_test_file(file: &str) -> TestFile {
     }
 }
 
-fn test_text_output(expected: &str, actual: Vec<u8>) -> Option<(bool, String)> {
+fn test_text_output(expected: Vec<String>, actual: Vec<u8>) -> Option<(bool, Vec<String>)> {
+    if expected.is_empty() && actual.is_empty() {
+        return Some((true, vec![]));
+    }
     if let Ok(actual_string) = String::from_utf8(actual.clone()) {
-        return Some((expected == actual_string, actual_string));
+        let splitted: Vec<String> = actual_string.split('\n').map(|x| x.to_string()).collect();
+        return Some((&expected == &splitted, splitted));
     }
     None
 }
