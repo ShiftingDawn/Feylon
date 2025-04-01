@@ -18,7 +18,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 stack.push(*x);
                 program_counter += 1;
             }
-            linker::Instruction::PushPtr(x) => {
+            linker::Instruction::PushPtr(x) | linker::Instruction::PushMem(x) => {
                 stack.push(*x as u32);
                 program_counter += 1;
             }
@@ -38,7 +38,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
             linker::Instruction::Intrinsic(intrinsic) => {
                 match intrinsic {
                     Intrinsic::Dump => {
-                        print!("{}", stack.pop().unwrap());
+                        println!("{}", stack.pop().unwrap());
                     }
                     Intrinsic::Drop => {
                         stack.pop();
@@ -227,7 +227,10 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 }
                 _ => panic!(),
             },
-            linker::Instruction::Jump | linker::Instruction::Function => match op.data {
+            linker::Instruction::Function => {
+                program_counter += 1;
+            }
+            linker::Instruction::Jump => match op.data {
                 LinkedTokenData::JumpAddr(ptr) => {
                     program_counter = ptr;
                 }

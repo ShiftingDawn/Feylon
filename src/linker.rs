@@ -17,6 +17,7 @@ pub enum LinkedTokenData {
 pub enum Instruction {
     PushInt(u32),
     PushPtr(usize),
+    PushMem(usize),
     PushBool(bool),
     PushString(String),
 
@@ -39,6 +40,7 @@ impl Display for Instruction {
         let txt = match self {
             Instruction::PushInt(_) => "PUSH_INT",
             Instruction::PushPtr(_) => "PUSH_POINTER",
+            Instruction::PushMem(_) => "PUSH_MEMORY",
             Instruction::PushBool(_) => "PUSH_BOOL",
             Instruction::PushString(_) => "PUSH_STRING",
 
@@ -165,20 +167,22 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                     );
                     std::process::exit(1);
                 });
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushPtr(def.ptr));
+                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::PushMem(def.ptr));
                 ctx.result.push(new_token);
             }
             Op::Function(function_name) => {
+                let jump_over_function_token = LinkedToken::new(token.word.clone(), ctx.incr_ptr(), Instruction::Jump);
+                ctx.result.push(jump_over_function_token);
                 ctx.call_stack.push(ctx.pointer);
-                let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Function);
-                ctx.result.push(new_token);
+                let enter_function_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Function);
+                ctx.result.push(enter_function_token);
                 let func_def = parser_context.functions.get(function_name).unwrap();
                 ctx.functions.insert(
                     function_name.clone(),
                     FunctionRef {
                         ins: func_def.ins.clone(),
                         outs: func_def.outs.clone(),
-                        ptr: ctx.pointer,
+                        ptr: ctx.pointer - 1,
                     },
                 );
             }
@@ -229,9 +233,10 @@ pub fn link_tokens(parser_context: tokenizer::ParserContext) -> LinkerContext {
                 let ref_token = &mut ctx.result[ref_ptr];
                 match &ref_token.instruction {
                     Instruction::Function => {
-                        ref_token.data = JumpAddr(ctx.pointer + 1);
                         let new_token = LinkedToken::new(token.word, ctx.incr_ptr(), Instruction::Return);
                         ctx.result.push(new_token);
+                        let jump_token = &mut ctx.result[ref_ptr - 1];
+                        jump_token.data = JumpAddr(ctx.pointer);
                     }
                     Instruction::PushVars => {
                         let var_block_id = ctx.var_stack.pop().unwrap();

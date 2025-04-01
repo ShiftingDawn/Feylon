@@ -77,7 +77,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 });
                 ctx.ptr += 1;
             }
-            Instruction::PushPtr(_) => {
+            Instruction::PushPtr(_) | Instruction::PushMem(_) => {
                 ctx.stack.push(TypedPos {
                     word: op.word.clone(),
                     typ: DataType::PTR,

@@ -2,7 +2,6 @@ use crate::linker::{Instruction, LinkerContext};
 use crate::tokenizer::Intrinsic;
 use crate::{compiler_string, linker};
 use std::io::Write;
-use std::ptr::write;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     let output_file_path = format!("{}.fasm", file_path);
@@ -52,8 +51,13 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 writeln!(&mut out_file, "    mov rax, {}", x).unwrap();
                 writeln!(&mut out_file, "    push rax").unwrap();
             }
-            Instruction::PushPtr(x) => {
-                writeln!(&mut out_file, "    mov rax, {}", x).unwrap();
+            Instruction::PushPtr(ptr) => {
+                writeln!(&mut out_file, "    mov rax, {}", ptr).unwrap();
+                writeln!(&mut out_file, "    push rax").unwrap();
+            }
+            Instruction::PushMem(offset) => {
+                writeln!(&mut out_file, "    mov rax, mem").unwrap();
+                writeln!(&mut out_file, "    add rax, {}", offset).unwrap();
                 writeln!(&mut out_file, "    push rax").unwrap();
             }
             Instruction::PushBool(x) => {
@@ -178,8 +182,8 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Less => {
                     writeln!(&mut out_file, "    mov rcx, 0").unwrap();
                     writeln!(&mut out_file, "    mov rdx, 1").unwrap();
-                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
+                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    cmp rax, rbx").unwrap();
                     writeln!(&mut out_file, "    cmovl rcx, rdx").unwrap();
                     writeln!(&mut out_file, "    push rcx").unwrap();
@@ -187,8 +191,8 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Greater => {
                     writeln!(&mut out_file, "    mov rcx, 0").unwrap();
                     writeln!(&mut out_file, "    mov rdx, 1").unwrap();
-                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
+                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    cmp rax, rbx").unwrap();
                     writeln!(&mut out_file, "    cmovg rcx, rdx").unwrap();
                     writeln!(&mut out_file, "    push rcx").unwrap();
@@ -196,8 +200,8 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::LessOrEqual => {
                     writeln!(&mut out_file, "    mov rcx, 0").unwrap();
                     writeln!(&mut out_file, "    mov rdx, 1").unwrap();
-                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
+                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    cmp rax, rbx").unwrap();
                     writeln!(&mut out_file, "    cmovle rcx, rdx").unwrap();
                     writeln!(&mut out_file, "    push rcx").unwrap();
@@ -205,8 +209,8 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::GreaterOrEqual => {
                     writeln!(&mut out_file, "    mov rcx, 0").unwrap();
                     writeln!(&mut out_file, "    mov rdx, 1").unwrap();
-                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
+                    writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    cmp rax, rbx").unwrap();
                     writeln!(&mut out_file, "    cmovge rcx, rdx").unwrap();
                     writeln!(&mut out_file, "    push rcx").unwrap();
@@ -247,12 +251,10 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
             },
-            Instruction::Function => match op.data {
-                linker::LinkedTokenData::JumpAddr(ptr) => {
-                    writeln!(&mut out_file, "    jmp addr_{}", ptr).unwrap();
-                }
-                _ => panic!(),
-            },
+            Instruction::Function => {
+                writeln!(&mut out_file, "    mov [callstack_rsp], rsp").unwrap();
+                writeln!(&mut out_file, "    mov rsp, rax").unwrap();
+            }
             Instruction::Call => match op.data {
                 linker::LinkedTokenData::JumpAddr(ptr) => {
                     writeln!(&mut out_file, "    mov rax, rsp").unwrap();
