@@ -114,6 +114,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                     writeln!(&mut out_file, "    push rax").unwrap();
                 }
                 Intrinsic::Divide => {
+                    writeln!(&mut out_file, "    xor rdx, rdx").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    div rbx").unwrap();
