@@ -1,15 +1,22 @@
 use crate::linker::{Instruction, LinkerContext};
 use crate::tokenizer::Intrinsic;
+use crate::{compiler_string, linker};
 use std::io::Write;
+
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     let output_file_path = format!("{}.fasm", file_path);
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
     });
-    for token in &ctx.result {
-        writeln!(&mut out_file, "addr_{}:", token.self_ptr).unwrap();
-        match token.instruction {
+    writeln!(&mut out_file, "format ELF64 executable 3").unwrap();
+    writeln!(&mut out_file, "segment readable executable").unwrap();
+    writeln!(&mut out_file, "print:").unwrap();
+    writeln!(&mut out_file, "    mov rax, 1").unwrap();
+    writeln!(&mut out_file, "    mov rdi, 1").unwrap();
+    for op in &ctx.result {
+        writeln!(&mut out_file, "addr_{}:    ;{}", op.self_ptr, compiler_string::stringify_op(&op)).unwrap();
+        match op.instruction {
             Instruction::PushInt(x) => {
                 writeln!(&mut out_file, "    mov rax, {}", x).unwrap();
                 writeln!(&mut out_file, "    push rax").unwrap();
@@ -24,7 +31,10 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
             }
             Instruction::PushString(_) => {}
             Instruction::Intrinsic(intrinsic) => match intrinsic {
-                Intrinsic::Dump => {}
+                Intrinsic::Dump => {
+                    writeln!(&mut out_file, "    pop rdi").unwrap();
+                    writeln!(&mut out_file, "    call print").unwrap();
+                }
                 Intrinsic::Drop => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                 }
@@ -69,7 +79,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Multiply => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
-                    writeln!(&mut out_file, "    mul rax, rbx").unwrap();
+                    writeln!(&mut out_file, "    mul rbx").unwrap();
                     writeln!(&mut out_file, "    push rax").unwrap();
                 }
                 Intrinsic::Divide => {
@@ -176,17 +186,52 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Load16 => {}
                 Intrinsic::Load32 => {}
             },
-            Instruction::Function => {}
+            Instruction::Function => match op.data {
+                linker::LinkedTokenData::JumpAddr(ptr) => {
+                    writeln!(&mut out_file, "    jmp addr_{}", ptr).unwrap();
+                }
+                _ => panic!(),
+            },
             Instruction::Call => {}
             Instruction::Return => {}
             Instruction::PushVars => {}
             Instruction::PopVars => {}
             Instruction::ApplyVar => {}
-            Instruction::Jump => {}
-            Instruction::JumpNeq => {}
-            Instruction::Do => {}
+            Instruction::Jump => match op.data {
+                linker::LinkedTokenData::JumpAddr(ptr) => {
+                    writeln!(&mut out_file, "    jmp addr_{}", ptr).unwrap();
+                }
+                _ => panic!(),
+            },
+            Instruction::JumpNeq => match op.data {
+                linker::LinkedTokenData::JumpAddr(ptr) => {
+                    writeln!(&mut out_file, "    pop rax").unwrap();
+                    writeln!(&mut out_file, "    test rax, rax").unwrap();
+                    writeln!(&mut out_file, "    jz addr_{}", ptr).unwrap();
+                }
+                _ => panic!(),
+            },
+            Instruction::Do => match op.data {
+                linker::LinkedTokenData::JumpAddr(ptr) => {
+                    writeln!(&mut out_file, "    pop rax").unwrap();
+                    writeln!(&mut out_file, "    test rax, rax").unwrap();
+                    writeln!(&mut out_file, "    jz addr_{}", ptr).unwrap();
+                }
+                _ => panic!(),
+            },
         }
     }
+    writeln!(&mut out_file, "addr_{}:", ctx.result.len()).unwrap();
+    writeln!(&mut out_file, "entry start").unwrap();
+    writeln!(&mut out_file, "start:").unwrap();
+    writeln!(&mut out_file, "    jmp addr_0").unwrap();
+    writeln!(&mut out_file, "segment readable writeable").unwrap();
+    // writeln!(&mut out_file, "    mov rax, 60").unwrap();
+    // writeln!(&mut out_file, "    xor rdi, rdi").unwrap();
+    // writeln!(&mut out_file, "    syscall").unwrap();
+    // writeln!(&mut out_file, "section '.idata' import data readable writeable").unwrap();
+    // writeln!(&mut out_file, "    library kernel32, 'kernel32.dll'").unwrap();
+    // writeln!(&mut out_file, "    import kernel32, ExitProcess, 'ExitProcess', GetStdHandle, 'GetStdHandle'").unwrap();
     out_file.flush().unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);

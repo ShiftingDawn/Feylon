@@ -23,7 +23,7 @@ pub fn process_program(file_path: &str, ctx: &linker::LinkerContext) {
     println!("SUCCESS: Written compilation to: {}", output_file_path);
 }
 
-fn stringify_op(op: &linker::LinkedToken) -> String {
+pub fn stringify_op(op: &linker::LinkedToken) -> String {
     let base: String = match &op.instruction {
         Instruction::PushInt(val) => format!("PUSH_INT({})", val),
         Instruction::PushString(val) => format!("PUSH_STRING({})", val),
