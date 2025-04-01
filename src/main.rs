@@ -5,7 +5,8 @@ use std::path::Path;
 
 mod checker;
 mod compiler;
-mod compiler_fasm;
+mod compiler_fasm_linux_amd64;
+mod compiler_fasm_win_amd64;
 mod compiler_string;
 mod evaluator;
 mod lexer;
