@@ -14,10 +14,38 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "entry start").unwrap();
     writeln!(&mut out_file, "section '.text' code readable executable").unwrap();
     writeln!(&mut out_file, "print:").unwrap();
-    writeln!(&mut out_file, "    mov rcx, 1").unwrap();
-    writeln!(&mut out_file, "    pop r8").unwrap();
-    writeln!(&mut out_file, "    mov r9, 0").unwrap();
-    writeln!(&mut out_file, "    call WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "    mov rsi, buffer + 11").unwrap();
+    writeln!(&mut out_file, "    mov rcx, 0").unwrap();
+    writeln!(&mut out_file, "    mov rbx, 10").unwrap();
+    writeln!(&mut out_file, "    cmp rdi, 0 ").unwrap();
+    writeln!(&mut out_file, "    jge .convert_loop").unwrap();
+    writeln!(&mut out_file, "    neg rdi").unwrap();
+    writeln!(&mut out_file, "    mov byte [buffer], '-'").unwrap();
+    writeln!(&mut out_file, "    inc rcx").unwrap();
+    writeln!(&mut out_file, ".convert_loop:").unwrap();
+    writeln!(&mut out_file, "    mov rdx, 0").unwrap();
+    writeln!(&mut out_file, "    div rbx").unwrap();
+    writeln!(&mut out_file, "    add dl, '0'").unwrap();
+    writeln!(&mut out_file, "    dec rsi").unwrap();
+    writeln!(&mut out_file, "    mov [rsi], dl").unwrap();
+    writeln!(&mut out_file, "    inc rcx").unwrap();
+    writeln!(&mut out_file, "    test rax, rax").unwrap();
+    writeln!(&mut out_file, "    jnz .convert_loop").unwrap();
+    writeln!(&mut out_file, "    mov rcx, -11").unwrap();
+    writeln!(&mut out_file, "    call [GetStdHandle]").unwrap();
+    writeln!(&mut out_file, "    mov rbx, rax").unwrap();
+    writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
+    writeln!(&mut out_file, "    lea rdx, [rsi]").unwrap();
+    writeln!(&mut out_file, "    mov r8, buffer + 11").unwrap();
+    writeln!(&mut out_file, "    sub r8, rsi").unwrap();
+    writeln!(&mut out_file, "    lea r9, [written]").unwrap();
+    writeln!(&mut out_file, "    mov qword [r9], 0").unwrap();
+    writeln!(&mut out_file, "    call [WriteConsoleA]").unwrap();
+    writeln!(&mut out_file, "    mov byte [newline], 13").unwrap();
+    writeln!(&mut out_file, "    mov byte [newline + 1], 10").unwrap();
+    writeln!(&mut out_file, "    lea rdx, [newline]").unwrap();
+    writeln!(&mut out_file, "    mov r8, 2").unwrap();
+    writeln!(&mut out_file, "    call [WriteConsoleA]").unwrap();
     writeln!(&mut out_file, "    ret").unwrap();
     for op in &ctx.result {
         writeln!(&mut out_file, "addr_{}:    ;{}", op.self_ptr, compiler_string::stringify_op(&op)).unwrap();
@@ -42,7 +70,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
             Instruction::PushString(_) => {}
             Instruction::Intrinsic(intrinsic) => match intrinsic {
                 Intrinsic::Dump => {
-                    writeln!(&mut out_file, "    pop rdx").unwrap();
+                    writeln!(&mut out_file, "    pop rdi").unwrap();
                     writeln!(&mut out_file, "    call print").unwrap();
                 }
                 Intrinsic::Drop => {
@@ -275,20 +303,27 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "addr_{}:", ctx.result.len()).unwrap();
     writeln!(&mut out_file, "    call addr_exit").unwrap();
     writeln!(&mut out_file, "start:").unwrap();
-    writeln!(&mut out_file, "    sub rsp, 40").unwrap();
     writeln!(&mut out_file, "    mov rax, callstack_top").unwrap();
     writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
     writeln!(&mut out_file, "    call addr_0").unwrap();
     writeln!(&mut out_file, "addr_exit:").unwrap();
-    writeln!(&mut out_file, "    call ExitProcess").unwrap();
+    writeln!(&mut out_file, "    xor ecx, ecx").unwrap();
+    writeln!(&mut out_file, "    call [ExitProcess]").unwrap();
     writeln!(&mut out_file, "section '.data' data readable writeable").unwrap();
-    writeln!(&mut out_file, "callstack_rsp: rq 1").unwrap();
-    writeln!(&mut out_file, "callstack: rb 65536").unwrap();
-    writeln!(&mut out_file, "callstack_top:").unwrap();
-    writeln!(&mut out_file, "mem: rb {}", ctx.mem_size).unwrap();
+    writeln!(&mut out_file, "    callstack_rsp: rq 1").unwrap();
+    writeln!(&mut out_file, "    callstack: rb 65536").unwrap();
+    writeln!(&mut out_file, "    callstack_top:").unwrap();
+    writeln!(&mut out_file, "    mem: rb {}", ctx.mem_size).unwrap();
+    writeln!(&mut out_file, "    newline: db 0, 0").unwrap();
+    writeln!(&mut out_file, "    buffer: db '000000000000', 0").unwrap();
+    writeln!(&mut out_file, "    written dq ?").unwrap();
     writeln!(&mut out_file, "section '.idata' import data readable writeable").unwrap();
     writeln!(&mut out_file, "    library kernel32,'kernel32.dll'").unwrap();
-    writeln!(&mut out_file, "    import kernel32,WriteConsoleA,'WriteConsoleA',ExitProcess,'ExitProcess'").unwrap();
+    writeln!(
+        &mut out_file,
+        "import kernel32,GetStdHandle,'GetStdHandle',WriteConsoleA,'WriteConsoleA',ExitProcess,'ExitProcess'"
+    )
+    .unwrap();
     out_file.flush().unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
