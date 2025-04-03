@@ -83,6 +83,7 @@ fn parse_test_file(file: &str) -> TestFile {
     match read_file_contents(file, None) {
         Ok(mut contents) => {
             contents.reverse();
+            println!("{:?}", contents);
             let exit_code: i32 = contents
                 .pop()
                 .unwrap_or_else(|| {
