@@ -383,9 +383,11 @@ fn get_intrinsic_by_word(word: &str) -> Option<Intrinsic> {
         "store8" | "store" => Some(Intrinsic::Store8),
         "store16" => Some(Intrinsic::Store16),
         "store32" => Some(Intrinsic::Store32),
+        "store64" => Some(Intrinsic::Store64),
         "load8" | "load" => Some(Intrinsic::Load8),
         "load16" => Some(Intrinsic::Load16),
         "load32" => Some(Intrinsic::Load32),
+        "load64" => Some(Intrinsic::Load64),
         _ => None,
     }
 }

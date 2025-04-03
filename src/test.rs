@@ -146,82 +146,69 @@ pub fn run_all_tests(self_path: String, file_path: String, print: bool) {
         eprintln!("ERROR: Directory is not a directory: {}", file_path);
         std::process::exit(1);
     }
-    match path.read_dir() {
-        Ok(dir_it) => {
-            let mut found_files: Vec<String> = vec![];
-            for dir_entry in dir_it {
-                match dir_entry {
-                    Ok(entry) => {
-                        let name_string = entry.file_name().to_str().unwrap().to_string();
-                        let full_path = entry.path().to_str().unwrap().to_string();
-                        if name_string.ends_with(".fey") {
-                            println!("INFO: Found test: {}", full_path);
-                            found_files.push(full_path);
-                        } else if !name_string.ends_with(".fey.txt") && !name_string.ends_with(".fey.cfc") {
-                            println!("WARN: Not a test: {}", full_path);
+    let paths: Vec<std::path::PathBuf> = std::fs::read_dir(path)
+        .expect("ERROR: Could not read directory")
+        .filter_map(|entry| {
+            entry.ok().and_then(|e| {
+                let path = e.path();
+                if path.extension().and_then(|ext| ext.to_str()) == Some("fey") {
+                    let result = path.canonicalize().unwrap();
+                    println!("INFO: Found test: {}", &result.display());
+                    Some(result)
+                } else {
+                    None
+                }
+            })
+        })
+        .collect();
+    let mut failed: Vec<String> = vec![];
+    for test_path in paths {
+        let test_path_string = test_path.to_string_lossy().to_string();
+        eprintln!("INFO: Running test: {}", test_path_string);
+        let mut cmd_builder = std::process::Command::new(self_path.clone());
+        cmd_builder.arg("test");
+        if print {
+            cmd_builder.arg("--print");
+        }
+        let cmd = cmd_builder
+            .arg(test_path_string.clone())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .output();
+        match cmd {
+            Ok(output) => match output.status.code() {
+                Some(code) => {
+                    if code != 0 {
+                        failed.push(test_path_string.to_string());
+                        if print {
+                            println!("======== STDOUT ========");
+                            println!("{}", String::from_utf8(output.stdout).unwrap());
+                            println!("======== STDERR ========");
+                            println!("{}", String::from_utf8(output.stderr).unwrap());
+                            println!("========= DONE =========");
                         }
                     }
-                    Err(err) => {
-                        eprintln!("ERROR: Could not enumerate directory: {}", file_path);
-                        eprintln!("{}", err);
-                        std::process::exit(1);
-                    }
                 }
-            }
-            let mut failed: Vec<String> = vec![];
-            for found_file in found_files {
-                eprintln!("INFO: Running test: {}", found_file);
-                let mut cmd_builder = std::process::Command::new(self_path.clone());
-                cmd_builder.arg("test");
-                if print {
-                    cmd_builder.arg("--print");
+                None => {
+                    eprintln!("ERROR: Could not test program {}!", file_path);
+                    std::process::exit(1);
                 }
-                let cmd = cmd_builder
-                    .arg(found_file.clone())
-                    .stdout(std::process::Stdio::piped())
-                    .stderr(std::process::Stdio::piped())
-                    .output();
-                match cmd {
-                    Ok(output) => match output.status.code() {
-                        Some(code) => {
-                            if code != 0 {
-                                failed.push(found_file.to_string());
-                                if print {
-                                    println!("======== STDOUT ========");
-                                    println!("{}", String::from_utf8(output.stdout).unwrap());
-                                    println!("======== STDERR ========");
-                                    println!("{}", String::from_utf8(output.stderr).unwrap());
-                                    println!("========= DONE =========");
-                                }
-                            }
-                        }
-                        None => {
-                            eprintln!("ERROR: Could not test program {}!", file_path);
-                            std::process::exit(1);
-                        }
-                    },
-                    Err(err) => {
-                        eprintln!("ERROR: Could not test program {}!", file_path);
-                        eprintln!("ERROR: {}", err);
-                        std::process::exit(1);
-                    }
-                }
-            }
-            if !failed.is_empty() {
-                eprintln!("ERROR: Some tests failed:");
-                for failed_path in failed {
-                    eprintln!("{}", failed_path);
-                }
-                if !print {
-                    eprintln!("Add the --print option to print the test outputs");
-                }
+            },
+            Err(err) => {
+                eprintln!("ERROR: Could not test program {}!", file_path);
+                eprintln!("ERROR: {}", err);
                 std::process::exit(1);
             }
         }
-        Err(err) => {
-            eprintln!("ERROR: Could not enumerate directory: {}", file_path);
-            eprintln!("{}", err);
-            std::process::exit(1);
+    }
+    if !failed.is_empty() {
+        eprintln!("ERROR: Some tests failed:");
+        for failed_path in failed {
+            eprintln!("{}", failed_path);
         }
+        if !print {
+            eprintln!("Add the --print option to print the test outputs");
+        }
+        std::process::exit(1);
     }
 }
