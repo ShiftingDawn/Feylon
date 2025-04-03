@@ -1,6 +1,5 @@
 /target
 
-*.cfc
-*.asm
-*.obj
-*.exe
+test/*
+!/test/*.fey
+!/test/*.fey.txt

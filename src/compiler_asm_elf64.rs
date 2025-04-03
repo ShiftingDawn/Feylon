@@ -4,13 +4,19 @@ use crate::{compiler_string, linker};
 use std::io::Write;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
-    let output_file_path = format!("{}.asm", file_path);
+    let output_file_path = file_path.replace(".fey", ".asm");
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
     });
-    writeln!(&mut out_file, "format ELF64 executable 3").unwrap();
-    writeln!(&mut out_file, "segment readable executable").unwrap();
+    writeln!(&mut out_file, "BITS 64").unwrap();
+    writeln!(&mut out_file, "global _start").unwrap();
+    writeln!(&mut out_file, "section .bss").unwrap();
+    writeln!(&mut out_file, "    callstack_rsp: resq 1").unwrap();
+    writeln!(&mut out_file, "    callstack: resb 65536").unwrap();
+    writeln!(&mut out_file, "    callstack_top:").unwrap();
+    writeln!(&mut out_file, "    mem: resb {}", ctx.mem_size).unwrap();
+    writeln!(&mut out_file, "section .text").unwrap();
     writeln!(&mut out_file, "print:").unwrap();
     writeln!(&mut out_file, "    mov     r9, -3689348814741910323").unwrap();
     writeln!(&mut out_file, "    sub     rsp, 40").unwrap();
@@ -44,6 +50,10 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "    syscall").unwrap();
     writeln!(&mut out_file, "    add     rsp, 40").unwrap();
     writeln!(&mut out_file, "    ret").unwrap();
+    writeln!(&mut out_file, "_start:").unwrap();
+    writeln!(&mut out_file, "    mov rax, callstack_top").unwrap();
+    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
+    writeln!(&mut out_file, "    jmp addr_0").unwrap();
     for op in &ctx.result {
         writeln!(&mut out_file, "addr_{}:    ;{}", op.self_ptr, compiler_string::stringify_op(&op)).unwrap();
         match op.instruction {
@@ -297,25 +307,59 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
             },
         }
     }
-    writeln!(&mut out_file, "addr_{}:", ctx.result.len()).unwrap();
-    writeln!(&mut out_file, "    call addr_exit").unwrap();
-    writeln!(&mut out_file, "entry start").unwrap();
-    writeln!(&mut out_file, "start:").unwrap();
-    writeln!(&mut out_file, "    mov rax, callstack_top").unwrap();
-    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
-    writeln!(&mut out_file, "    call addr_0").unwrap();
     writeln!(&mut out_file, "addr_exit:").unwrap();
     writeln!(&mut out_file, "    mov rax, 60").unwrap();
     writeln!(&mut out_file, "    mov rdi, 0").unwrap();
     writeln!(&mut out_file, "    syscall").unwrap();
-    writeln!(&mut out_file, "segment readable writeable").unwrap();
-    writeln!(&mut out_file, "callstack_rsp: rq 1").unwrap();
-    writeln!(&mut out_file, "callstack: rb 65536").unwrap();
-    writeln!(&mut out_file, "callstack_top:").unwrap();
-    writeln!(&mut out_file, "mem: rb {}", ctx.mem_size).unwrap();
+
     out_file.flush().unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
     });
     println!("SUCCESS: Written compilation to: {}", output_file_path);
+    compile_obj_file(file_path);
+    link_obj_file(file_path);
+}
+
+fn compile_obj_file(file_path: &str) {
+    let asm_file_path = file_path.replace(".fey", ".asm");
+    let obj_file_path = file_path.replace(".fey", ".obj");
+    let cmd = std::process::Command::new("nasm")
+        .arg(asm_file_path)
+        .args(vec!["-felf64", "-g", "-o"])
+        .arg(&obj_file_path)
+        .output()
+        .unwrap_or_else(|err| {
+            eprintln!("ERROR: Could not compile assembly: {}", err);
+            std::process::exit(1);
+        });
+    if cmd.status.success() {
+        println!("SUCCESS: Written compiled assembly to: {}", obj_file_path);
+    } else {
+        eprintln!("ERROR: Could not compile assembly");
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stderr));
+        std::process::exit(1);
+    }
+}
+
+fn link_obj_file(file_path: &str) {
+    let obj_file_path = file_path.replace(".fey", ".obj");
+    let exe_file_path = file_path.replace(".fey", "");
+    let cmd = std::process::Command::new("ld")
+        .arg("-o")
+        .arg(&exe_file_path)
+        .arg(obj_file_path)
+        .output()
+        .unwrap_or_else(|err| {
+            eprintln!("ERROR: Could not make executable: {}", err);
+            std::process::exit(1);
+        });
+    if cmd.status.success() {
+        println!("SUCCESS: Written executable to: {}", exe_file_path);
+    } else {
+        eprintln!("ERROR: Could not make executable");
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stdout));
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stderr));
+        std::process::exit(1);
+    }
 }

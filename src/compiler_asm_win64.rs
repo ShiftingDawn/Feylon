@@ -2,7 +2,6 @@ use crate::linker::{Instruction, LinkerContext};
 use crate::tokenizer::Intrinsic;
 use crate::{compiler_string, linker};
 use std::io::Write;
-use std::os::windows::process::CommandExt;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     let output_file_path = format!("{}.asm", file_path);
@@ -15,7 +14,6 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "extern GetStdHandle").unwrap();
     writeln!(&mut out_file, "extern WriteConsoleA").unwrap();
     writeln!(&mut out_file, "extern ExitProcess").unwrap();
-
     writeln!(&mut out_file, "section .data").unwrap();
     writeln!(&mut out_file, "    newline: db 13, 10, 0").unwrap();
     writeln!(&mut out_file, "section .bss").unwrap();
@@ -24,7 +22,6 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "    callstack: resb 65536").unwrap();
     writeln!(&mut out_file, "    callstack_top:").unwrap();
     writeln!(&mut out_file, "    mem: resb {}", ctx.mem_size).unwrap();
-
     writeln!(&mut out_file, "section .text").unwrap();
     writeln!(&mut out_file, "print:").unwrap();
     writeln!(&mut out_file, "    sub rsp, 40").unwrap();
@@ -324,7 +321,7 @@ fn compile_obj_file(file_path: &str) {
     let obj_file_path = format!("{}.obj", file_path);
     let cmd = std::process::Command::new("nasm")
         .arg(asm_file_path)
-        .raw_arg("-fwin64 -g -o")
+        .args(vec!["-fwin64", "-g", "-o"])
         .arg(&obj_file_path)
         .output()
         .unwrap_or_else(|err| {
@@ -344,10 +341,10 @@ fn link_obj_file(file_path: &str) {
     let obj_file_path = format!("{}.obj", file_path);
     let exe_file_path = format!("{}.exe", file_path);
     let cmd = std::process::Command::new("golink")
-        .raw_arg("/console /entry _start /debug coff /fo")
+        .args(vec!["/console", "/entry", "_start", "/debug,", "coff", "/fo"])
         .arg(&exe_file_path)
         .arg(obj_file_path)
-        .raw_arg("kernel32.dll")
+        .arg("kernel32.dll")
         .output()
         .unwrap_or_else(|err| {
             if err.to_string() == "program not found" {

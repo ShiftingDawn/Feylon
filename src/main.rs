@@ -1,6 +1,6 @@
 use crate::linker::LinkerContext;
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Read};
+use std::io::{self, BufReader, Read};
 use std::path::Path;
 
 mod checker;
