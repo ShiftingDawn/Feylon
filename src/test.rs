@@ -151,8 +151,9 @@ pub fn run_all_tests(self_path: String, file_path: String, print: bool) {
         .filter_map(|entry| {
             entry.ok().and_then(|e| {
                 let path = e.path();
+                let result = path.canonicalize().unwrap();
+                println!("INFO: Found file: {}", &result.display());
                 if path.extension().and_then(|ext| ext.to_str()) == Some("fey") {
-                    let result = path.canonicalize().unwrap();
                     println!("INFO: Found test: {}", &result.display());
                     Some(result)
                 } else {
