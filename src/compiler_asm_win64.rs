@@ -2,51 +2,63 @@ use crate::linker::{Instruction, LinkerContext};
 use crate::tokenizer::Intrinsic;
 use crate::{compiler_string, linker};
 use std::io::Write;
+use std::os::windows::process::CommandExt;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
-    let output_file_path = format!("{}.fasm", file_path);
+    let output_file_path = format!("{}.asm", file_path);
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
     });
-    writeln!(&mut out_file, "format PE64 console").unwrap();
-    writeln!(&mut out_file, "include 'win64a.inc'").unwrap();
-    writeln!(&mut out_file, "entry start").unwrap();
-    writeln!(&mut out_file, "section '.text' code readable executable").unwrap();
+    writeln!(&mut out_file, "BITS 64").unwrap();
+    writeln!(&mut out_file, "global _start").unwrap();
+    writeln!(&mut out_file, "extern GetStdHandle").unwrap();
+    writeln!(&mut out_file, "extern WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "extern ExitProcess").unwrap();
+
+    writeln!(&mut out_file, "section .data").unwrap();
+    writeln!(&mut out_file, "    newline: db 13, 10, 0").unwrap();
+    writeln!(&mut out_file, "section .bss").unwrap();
+    writeln!(&mut out_file, "    itoabuffer: resb 10").unwrap();
+    writeln!(&mut out_file, "    callstack_rsp: resq 1").unwrap();
+    writeln!(&mut out_file, "    callstack: resb 65536").unwrap();
+    writeln!(&mut out_file, "    callstack_top:").unwrap();
+    writeln!(&mut out_file, "    mem: resb {}", ctx.mem_size).unwrap();
+
+    writeln!(&mut out_file, "section .text").unwrap();
     writeln!(&mut out_file, "print:").unwrap();
-    writeln!(&mut out_file, "    mov rsi, buffer + 11").unwrap();
-    writeln!(&mut out_file, "    mov rcx, 0").unwrap();
-    writeln!(&mut out_file, "    mov rbx, 10").unwrap();
-    writeln!(&mut out_file, "    cmp rdi, 0 ").unwrap();
-    writeln!(&mut out_file, "    jge .convert_loop").unwrap();
-    writeln!(&mut out_file, "    neg rdi").unwrap();
-    writeln!(&mut out_file, "    mov byte [buffer], '-'").unwrap();
-    writeln!(&mut out_file, "    inc rcx").unwrap();
-    writeln!(&mut out_file, ".convert_loop:").unwrap();
-    writeln!(&mut out_file, "    mov rdx, 0").unwrap();
-    writeln!(&mut out_file, "    div rbx").unwrap();
-    writeln!(&mut out_file, "    add dl, '0'").unwrap();
-    writeln!(&mut out_file, "    dec rsi").unwrap();
-    writeln!(&mut out_file, "    mov [rsi], dl").unwrap();
-    writeln!(&mut out_file, "    inc rcx").unwrap();
-    writeln!(&mut out_file, "    test rax, rax").unwrap();
-    writeln!(&mut out_file, "    jnz .convert_loop").unwrap();
-    writeln!(&mut out_file, "    mov rcx, -11").unwrap();
-    writeln!(&mut out_file, "    call [GetStdHandle]").unwrap();
+    writeln!(&mut out_file, "    sub rsp, 40").unwrap();
+    writeln!(&mut out_file, "    mov rax, rcx").unwrap();
+    writeln!(&mut out_file, "    lea rdi, [itoabuffer + 10]").unwrap();
+    writeln!(&mut out_file, "    mov rcx, 10").unwrap();
+    writeln!(&mut out_file, "    xor r8, r8").unwrap();
+    writeln!(&mut out_file, "    .divloop:").unwrap();
+    writeln!(&mut out_file, "        xor rdx,rdx").unwrap();
+    writeln!(&mut out_file, "        div rcx").unwrap();
+    writeln!(&mut out_file, "        add dl, '0'").unwrap();
+    writeln!(&mut out_file, "        dec rdi").unwrap();
+    writeln!(&mut out_file, "        mov [rdi], dl").unwrap();
+    writeln!(&mut out_file, "        inc r8").unwrap();
+    writeln!(&mut out_file, "        test rax, rax").unwrap();
+    writeln!(&mut out_file, "        jnz .divloop").unwrap();
+    writeln!(&mut out_file, "    mov ecx, -11").unwrap();
+    writeln!(&mut out_file, "    call GetStdHandle").unwrap();
     writeln!(&mut out_file, "    mov rbx, rax").unwrap();
+    writeln!(&mut out_file, "    mov rdx, rdi").unwrap();
+    writeln!(&mut out_file, "    mov r9, 0").unwrap();
     writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
-    writeln!(&mut out_file, "    lea rdx, [rsi]").unwrap();
-    writeln!(&mut out_file, "    mov r8, buffer + 11").unwrap();
-    writeln!(&mut out_file, "    sub r8, rsi").unwrap();
-    writeln!(&mut out_file, "    lea r9, [written]").unwrap();
-    writeln!(&mut out_file, "    mov qword [r9], 0").unwrap();
-    writeln!(&mut out_file, "    call [WriteConsoleA]").unwrap();
-    writeln!(&mut out_file, "    mov byte [newline], 13").unwrap();
-    writeln!(&mut out_file, "    mov byte [newline + 1], 10").unwrap();
-    writeln!(&mut out_file, "    lea rdx, [newline]").unwrap();
+    writeln!(&mut out_file, "    call WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "    mov rdx, newline").unwrap();
     writeln!(&mut out_file, "    mov r8, 2").unwrap();
-    writeln!(&mut out_file, "    call [WriteConsoleA]").unwrap();
+    writeln!(&mut out_file, "    xor r9, r9").unwrap();
+    writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
+    writeln!(&mut out_file, "    call WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "    add rsp, 40").unwrap();
     writeln!(&mut out_file, "    ret").unwrap();
+    writeln!(&mut out_file, "_start:").unwrap();
+    writeln!(&mut out_file, "    mov rax, callstack_top").unwrap();
+    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
+    writeln!(&mut out_file, "    jmp addr_0").unwrap();
     for op in &ctx.result {
         writeln!(&mut out_file, "addr_{}:    ;{}", op.self_ptr, compiler_string::stringify_op(&op)).unwrap();
         match op.instruction {
@@ -70,7 +82,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
             Instruction::PushString(_) => {}
             Instruction::Intrinsic(intrinsic) => match intrinsic {
                 Intrinsic::Dump => {
-                    writeln!(&mut out_file, "    pop rdi").unwrap();
+                    writeln!(&mut out_file, "    pop rcx").unwrap();
                     writeln!(&mut out_file, "    call print").unwrap();
                 }
                 Intrinsic::Drop => {
@@ -221,36 +233,31 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Store8 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
-                    writeln!(&mut out_file, "    mov [rax], bl").unwrap();
+                    writeln!(&mut out_file, "    mov byte [rax], bl").unwrap();
                 }
                 Intrinsic::Store16 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
-                    writeln!(&mut out_file, "    mov [rax], bx").unwrap();
+                    writeln!(&mut out_file, "    mov word [rax], bx").unwrap();
                 }
                 Intrinsic::Store32 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    pop rbx").unwrap();
-                    writeln!(&mut out_file, "    mov [rax], ebx").unwrap();
+                    writeln!(&mut out_file, "    mov dword [rax], ebx").unwrap();
                 }
-                // Intrinsic::Store64 => {
-                //     writeln!(&mut out_file, "    pop rax").unwrap();
-                //     writeln!(&mut out_file, "    pop rbx").unwrap();
-                //     writeln!(&mut out_file, "    mov [rax], rbx").unwrap();
-                // }
                 Intrinsic::Load8 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
-                    writeln!(&mut out_file, "    mov bl, [rax]").unwrap();
+                    writeln!(&mut out_file, "    movzx rbx, byte [rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
                 Intrinsic::Load16 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
-                    writeln!(&mut out_file, "    mov bx, [rax]").unwrap();
+                    writeln!(&mut out_file, "    movzx rbx, word [rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
                 Intrinsic::Load32 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
-                    writeln!(&mut out_file, "    mov eax, [rax]").unwrap();
+                    writeln!(&mut out_file, "    movzx rbx, dword [rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
             },
@@ -300,33 +307,62 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
             },
         }
     }
-    writeln!(&mut out_file, "addr_{}:", ctx.result.len()).unwrap();
-    writeln!(&mut out_file, "    call addr_exit").unwrap();
-    writeln!(&mut out_file, "start:").unwrap();
-    writeln!(&mut out_file, "    mov rax, callstack_top").unwrap();
-    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
-    writeln!(&mut out_file, "    call addr_0").unwrap();
     writeln!(&mut out_file, "addr_exit:").unwrap();
-    writeln!(&mut out_file, "    xor ecx, ecx").unwrap();
-    writeln!(&mut out_file, "    call [ExitProcess]").unwrap();
-    writeln!(&mut out_file, "section '.data' data readable writeable").unwrap();
-    writeln!(&mut out_file, "    callstack_rsp: rq 1").unwrap();
-    writeln!(&mut out_file, "    callstack: rb 65536").unwrap();
-    writeln!(&mut out_file, "    callstack_top:").unwrap();
-    writeln!(&mut out_file, "    mem: rb {}", ctx.mem_size).unwrap();
-    writeln!(&mut out_file, "    newline: db 0, 0").unwrap();
-    writeln!(&mut out_file, "    buffer: db '000000000000', 0").unwrap();
-    writeln!(&mut out_file, "    written dq ?").unwrap();
-    writeln!(&mut out_file, "section '.idata' import data readable writeable").unwrap();
-    writeln!(&mut out_file, "    library kernel32,'kernel32.dll'").unwrap();
-    writeln!(
-        &mut out_file,
-        "import kernel32,GetStdHandle,'GetStdHandle',WriteConsoleA,'WriteConsoleA',ExitProcess,'ExitProcess'"
-    )
-    .unwrap();
+    writeln!(&mut out_file, "    xor rcx, rcx").unwrap();
+    writeln!(&mut out_file, "    call ExitProcess").unwrap();
     out_file.flush().unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
     });
-    println!("SUCCESS: Written compilation to: {}", output_file_path);
+    println!("SUCCESS: Written assembly to: {}", output_file_path);
+    compile_obj_file(file_path);
+    link_obj_file(file_path);
+}
+
+fn compile_obj_file(file_path: &str) {
+    let asm_file_path = format!("{}.asm", file_path);
+    let obj_file_path = format!("{}.obj", file_path);
+    let cmd = std::process::Command::new("nasm")
+        .arg(asm_file_path)
+        .raw_arg("-fwin64 -g -o")
+        .arg(&obj_file_path)
+        .output()
+        .unwrap_or_else(|err| {
+            eprintln!("ERROR: Could not compile assembly: {}", err);
+            std::process::exit(1);
+        });
+    if cmd.status.success() {
+        println!("SUCCESS: Written compiled assembly to: {}", obj_file_path);
+    } else {
+        eprintln!("ERROR: Could not compile assembly");
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stderr));
+        std::process::exit(1);
+    }
+}
+
+fn link_obj_file(file_path: &str) {
+    let obj_file_path = format!("{}.obj", file_path);
+    let exe_file_path = format!("{}.exe", file_path);
+    let cmd = std::process::Command::new("golink")
+        .raw_arg("/console /entry _start /debug coff /fo")
+        .arg(&exe_file_path)
+        .arg(obj_file_path)
+        .raw_arg("kernel32.dll")
+        .output()
+        .unwrap_or_else(|err| {
+            if err.to_string() == "program not found" {
+                eprintln!("ERROR: Could not make executable: GoLink.exe was not found in PATH");
+            } else {
+                eprintln!("ERROR: Could not make executable: {}", err);
+            }
+            std::process::exit(1);
+        });
+    if cmd.status.success() {
+        println!("SUCCESS: Written executable to: {}", exe_file_path);
+    } else {
+        eprintln!("ERROR: Could not make executable");
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stdout));
+        eprintln!("{}", String::from_utf8_lossy(&cmd.stderr));
+        std::process::exit(1);
+    }
 }

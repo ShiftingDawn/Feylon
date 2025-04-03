@@ -1,6 +1,6 @@
 /target
 
 *.cfc
-*.fasm
-*.o
+*.asm
+*.obj
 *.exe
