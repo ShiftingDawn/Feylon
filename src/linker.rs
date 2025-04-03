@@ -15,7 +15,7 @@ pub enum LinkedTokenData {
 }
 
 pub enum Instruction {
-    PushInt(u32),
+    PushInt(u64),
     PushPtr(usize),
     PushMem(usize),
     PushBool(bool),

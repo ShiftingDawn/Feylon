@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 
 pub struct ConstDef {
     pub typ: checker::DataType,
-    pub val: u32,
+    pub val: u64,
 }
 
 pub struct MemoryDef {
@@ -38,7 +38,7 @@ pub struct Token {
 }
 
 pub enum Op {
-    PushInt(u32),
+    PushInt(u64),
     PushPtr(usize),
     PushBool(bool),
     PushString(String),
@@ -186,7 +186,7 @@ pub fn parse_words_into_tokens(mut words: Vec<lexer::Word>) -> ParserContext {
 }
 
 fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, word: lexer::Word) -> Option<Token> {
-    match word.txt.parse::<u32>() {
+    match word.txt.parse::<u64>() {
         Ok(x) => {
             return Some(Token { word, op: Op::PushInt(x) });
         }

@@ -3,10 +3,10 @@ use crate::linker::LinkedTokenData;
 use crate::tokenizer::Intrinsic;
 
 pub fn simulate_tokens(linker_context: linker::LinkerContext) {
-    let mut stack: Vec<u32> = vec![];
-    let mut vars: Vec<u32> = vec![];
+    let mut stack: Vec<u64> = vec![];
+    let mut vars: Vec<u64> = vec![];
     let mut call_stack: Vec<usize> = vec![];
-    let mut mem: Vec<u8> = vec![0; linker_context.mem_size];
+    let mut mem: Vec<u64> = vec![0; linker_context.mem_size];
     let mut string_pool = [0; 65536];
     let mut string_ptr = 0;
     let mut program_counter: usize = 0;
@@ -19,7 +19,7 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 program_counter += 1;
             }
             linker::Instruction::PushPtr(x) | linker::Instruction::PushMem(x) => {
-                stack.push(*x as u32);
+                stack.push(*x as u64);
                 program_counter += 1;
             }
             linker::Instruction::PushBool(x) => {
@@ -30,8 +30,8 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                 let str_as_chars = x.as_bytes();
                 let strlen = str_as_chars.len();
                 string_pool[string_ptr..string_ptr + strlen].copy_from_slice(str_as_chars);
-                stack.push(strlen as u32);
-                stack.push(string_ptr as u32);
+                stack.push(strlen as u64);
+                stack.push(string_ptr as u64);
                 string_ptr += strlen;
                 program_counter += 1;
             }
@@ -145,66 +145,14 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                         let b = stack.pop().unwrap();
                         stack.push(if b >= a { 1 } else { 0 });
                     }
-                    Intrinsic::Store8 => {
+                    Intrinsic::Store8 | Intrinsic::Store16 | Intrinsic::Store32 | Intrinsic::Store64 => {
                         let ptr = stack.pop().unwrap() as usize;
                         let a = stack.pop().unwrap();
-                        mem[ptr] = a as u8;
+                        mem[ptr] = a;
                     }
-                    Intrinsic::Store16 => {
+                    Intrinsic::Load8 | Intrinsic::Load16 | Intrinsic::Load32 | Intrinsic::Load64 => {
                         let ptr = stack.pop().unwrap() as usize;
-                        let a = stack.pop().unwrap();
-                        mem[ptr] = a as u8;
-                        mem[ptr + 1] = (a >> 8) as u8;
-                    }
-                    Intrinsic::Store32 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let a = stack.pop().unwrap();
-                        mem[ptr] = a as u8;
-                        mem[ptr + 1] = (a >> 8) as u8;
-                        mem[ptr + 2] = (a >> 16) as u8;
-                        mem[ptr + 3] = (a >> 24) as u8;
-                    }
-                    Intrinsic::Store64 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let a = stack.pop().unwrap();
-                        mem[ptr] = a as u8;
-                        mem[ptr + 1] = (a >> 8) as u8;
-                        mem[ptr + 2] = (a >> 16) as u8;
-                        mem[ptr + 3] = (a >> 24) as u8;
-                        mem[ptr + 4] = (a >> 32) as u8;
-                        mem[ptr + 5] = (a >> 40) as u8;
-                        mem[ptr + 6] = (a >> 48) as u8;
-                        mem[ptr + 7] = (a >> 56) as u8;
-                    }
-                    Intrinsic::Load8 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let x = mem[ptr] as u32;
-                        stack.push(x);
-                    }
-                    Intrinsic::Load16 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let mut x = mem[ptr] as u32;
-                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
-                        stack.push(x);
-                    }
-                    Intrinsic::Load32 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let mut x = mem[ptr] as u32;
-                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
-                        x = x | (((mem[ptr + 2] & 0xFF) as u32) << 16);
-                        x = x | (((mem[ptr + 3] & 0xFF) as u32) << 24);
-                        stack.push(x);
-                    }
-                    Intrinsic::Load64 => {
-                        let ptr = stack.pop().unwrap() as usize;
-                        let mut x = mem[ptr] as u32;
-                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
-                        x = x | (((mem[ptr + 2] & 0xFF) as u32) << 16);
-                        x = x | (((mem[ptr + 3] & 0xFF) as u32) << 24);
-                        x = x | (((mem[ptr + 4] & 0xFF) as u32) << 32);
-                        x = x | (((mem[ptr + 5] & 0xFF) as u32) << 40);
-                        x = x | (((mem[ptr + 6] & 0xFF) as u32) << 48);
-                        x = x | (((mem[ptr + 7] & 0xFF) as u32) << 56);
+                        let x = mem[ptr];
                         stack.push(x);
                     }
                 }
@@ -223,20 +171,17 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
             }
             linker::Instruction::PushVars => match op.data {
                 LinkedTokenData::Count(count) => {
-                    let mut to_append = vec![];
                     for _ in 0..count {
                         let x = stack.pop().unwrap();
-                        to_append.push(x);
+                        vars.push(x);
                     }
-                    to_append.reverse();
-                    vars.append(&mut to_append);
                     program_counter += 1;
                 }
                 _ => panic!(),
             },
             linker::Instruction::ApplyVar => match op.data {
-                LinkedTokenData::JumpAddr(var_index) => {
-                    let x = vars[var_index];
+                LinkedTokenData::Index(var_index) => {
+                    let x = vars[vars.len() - 1 - var_index];
                     stack.push(x);
                     program_counter += 1;
                 }
