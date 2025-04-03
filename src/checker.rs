@@ -326,7 +326,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                             }],
                         );
                     }
-                    tokenizer::Intrinsic::Store8 | tokenizer::Intrinsic::Store16 | tokenizer::Intrinsic::Store32 => {
+                    tokenizer::Intrinsic::Store8 | tokenizer::Intrinsic::Store16 | tokenizer::Intrinsic::Store32 | tokenizer::Intrinsic::Store64 => {
                         check_signature(
                             &op,
                             ctx,
@@ -336,7 +336,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                             }],
                         );
                     }
-                    tokenizer::Intrinsic::Load8 | tokenizer::Intrinsic::Load16 | tokenizer::Intrinsic::Load32 => {
+                    tokenizer::Intrinsic::Load8 | tokenizer::Intrinsic::Load16 | tokenizer::Intrinsic::Load32 | tokenizer::Intrinsic::Load64 => {
                         check_signature(
                             &op,
                             ctx,

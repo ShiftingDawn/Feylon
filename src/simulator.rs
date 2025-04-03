@@ -164,6 +164,18 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                         mem[ptr + 2] = (a >> 16) as u8;
                         mem[ptr + 3] = (a >> 24) as u8;
                     }
+                    Intrinsic::Store64 => {
+                        let ptr = stack.pop().unwrap() as usize;
+                        let a = stack.pop().unwrap();
+                        mem[ptr] = a as u8;
+                        mem[ptr + 1] = (a >> 8) as u8;
+                        mem[ptr + 2] = (a >> 16) as u8;
+                        mem[ptr + 3] = (a >> 24) as u8;
+                        mem[ptr + 4] = (a >> 32) as u8;
+                        mem[ptr + 5] = (a >> 40) as u8;
+                        mem[ptr + 6] = (a >> 48) as u8;
+                        mem[ptr + 7] = (a >> 56) as u8;
+                    }
                     Intrinsic::Load8 => {
                         let ptr = stack.pop().unwrap() as usize;
                         let x = mem[ptr] as u32;
@@ -181,6 +193,18 @@ pub fn simulate_tokens(linker_context: linker::LinkerContext) {
                         x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
                         x = x | (((mem[ptr + 2] & 0xFF) as u32) << 16);
                         x = x | (((mem[ptr + 3] & 0xFF) as u32) << 24);
+                        stack.push(x);
+                    }
+                    Intrinsic::Load64 => {
+                        let ptr = stack.pop().unwrap() as usize;
+                        let mut x = mem[ptr] as u32;
+                        x = x | (((mem[ptr + 1] & 0xFF) as u32) << 8);
+                        x = x | (((mem[ptr + 2] & 0xFF) as u32) << 16);
+                        x = x | (((mem[ptr + 3] & 0xFF) as u32) << 24);
+                        x = x | (((mem[ptr + 4] & 0xFF) as u32) << 32);
+                        x = x | (((mem[ptr + 5] & 0xFF) as u32) << 40);
+                        x = x | (((mem[ptr + 6] & 0xFF) as u32) << 48);
+                        x = x | (((mem[ptr + 7] & 0xFF) as u32) << 56);
                         stack.push(x);
                     }
                 }

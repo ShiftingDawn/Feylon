@@ -244,6 +244,11 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                     writeln!(&mut out_file, "    pop rbx").unwrap();
                     writeln!(&mut out_file, "    mov dword [rax], ebx").unwrap();
                 }
+                Intrinsic::Store64 => {
+                    writeln!(&mut out_file, "    pop rax").unwrap();
+                    writeln!(&mut out_file, "    pop rbx").unwrap();
+                    writeln!(&mut out_file, "    mov qword [rax], rbx").unwrap();
+                }
                 Intrinsic::Load8 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    movzx rbx, byte [rax]").unwrap();
@@ -257,6 +262,11 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 Intrinsic::Load32 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
                     writeln!(&mut out_file, "    movzx rbx, dword [rax]").unwrap();
+                    writeln!(&mut out_file, "    push rbx").unwrap();
+                }
+                Intrinsic::Load64 => {
+                    writeln!(&mut out_file, "    pop rax").unwrap();
+                    writeln!(&mut out_file, "    movzx rax, qword [rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
             },

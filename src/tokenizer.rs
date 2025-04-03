@@ -87,11 +87,11 @@ pub enum Intrinsic {
     Store8,
     Store16,
     Store32,
-    //TODO Store64
+    Store64,
     Load8,
     Load16,
     Load32,
-    //TODO Load64
+    Load64,
 }
 
 impl Display for Op {
@@ -150,9 +150,11 @@ impl Display for Intrinsic {
             Intrinsic::Store8 => "STORE_8",
             Intrinsic::Store16 => "STORE_16",
             Intrinsic::Store32 => "STORE_32",
+            Intrinsic::Store64 => "STORE_64",
             Intrinsic::Load8 => "LOAD_8",
             Intrinsic::Load16 => "LOAD_16",
             Intrinsic::Load32 => "LOAD_32",
+            Intrinsic::Load64 => "LOAD_64",
         };
         write!(f, "{}", txt)
     }
