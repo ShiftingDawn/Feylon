@@ -4,7 +4,7 @@ use crate::{compiler_string, linker};
 use std::io::Write;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
-    let output_file_path = format!("{}.fasm", file_path);
+    let output_file_path = format!("{}.asm", file_path);
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
