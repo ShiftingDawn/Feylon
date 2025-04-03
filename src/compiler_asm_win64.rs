@@ -1,10 +1,10 @@
 use crate::linker::{Instruction, LinkerContext};
 use crate::tokenizer::Intrinsic;
-use crate::{compiler_string, linker};
+use crate::{add_or_replace_extension, compiler_string, linker};
 use std::io::Write;
 
 pub fn process_program(file_path: &str, ctx: &LinkerContext) {
-    let output_file_path = format!("{}.asm", file_path);
+    let output_file_path = add_or_replace_extension(file_path, "asm");
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
@@ -76,7 +76,9 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 writeln!(&mut out_file, "    mov rax, {}", if x { 1 } else { 0 }).unwrap();
                 writeln!(&mut out_file, "    push rax").unwrap();
             }
-            Instruction::PushString(_) => {}
+            Instruction::PushString(_) => {
+                //TODO STRING
+            }
             Instruction::Intrinsic(intrinsic) => match intrinsic {
                 Intrinsic::Dump => {
                     writeln!(&mut out_file, "    pop rcx").unwrap();
@@ -277,9 +279,34 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 writeln!(&mut out_file, "    mov rsp, [callstack_rsp]").unwrap();
                 writeln!(&mut out_file, "    ret").unwrap();
             }
-            Instruction::PushVars => {}
-            Instruction::PopVars => {}
-            Instruction::ApplyVar => {}
+            Instruction::PushVars => match op.data {
+                linker::LinkedTokenData::Count(var_count) => {
+                    writeln!(&mut out_file, "    mov rax, [callstack_rsp]").unwrap();
+                    writeln!(&mut out_file, "    sub rax, {}", var_count * 8).unwrap();
+                    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
+                    for i in 0..var_count {
+                        writeln!(&mut out_file, "    pop rbx").unwrap();
+                        writeln!(&mut out_file, "    mov [rax + {}], rbx", (var_count - 1 - i) * 8).unwrap();
+                    }
+                }
+                _ => panic!(),
+            },
+            Instruction::PopVars => match op.data {
+                linker::LinkedTokenData::Count(var_count) => {
+                    writeln!(&mut out_file, "    mov rax, [callstack_rsp]").unwrap();
+                    writeln!(&mut out_file, "    add rax, {}", 8 * var_count).unwrap();
+                    writeln!(&mut out_file, "    mov [callstack_rsp], rax").unwrap();
+                }
+                _ => panic!(),
+            },
+            Instruction::ApplyVar => match op.data {
+                linker::LinkedTokenData::Index(var_index) => {
+                    writeln!(&mut out_file, "    mov rax, [callstack_rsp]").unwrap();
+                    writeln!(&mut out_file, "    add rax, {}", 8 * var_index).unwrap();
+                    writeln!(&mut out_file, "    push qword [rax]").unwrap();
+                }
+                _ => panic!(),
+            },
             Instruction::Jump => match op.data {
                 linker::LinkedTokenData::JumpAddr(ptr) => {
                     writeln!(&mut out_file, "    jmp addr_{}", ptr).unwrap();
@@ -317,8 +344,8 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
 }
 
 fn compile_obj_file(file_path: &str) {
-    let asm_file_path = format!("{}.asm", file_path);
-    let obj_file_path = format!("{}.obj", file_path);
+    let asm_file_path = add_or_replace_extension(file_path, "asm");
+    let obj_file_path = add_or_replace_extension(file_path, "obj");
     let cmd = std::process::Command::new("nasm")
         .arg(asm_file_path)
         .args(vec!["-fwin64", "-g", "-o"])
@@ -338,10 +365,10 @@ fn compile_obj_file(file_path: &str) {
 }
 
 fn link_obj_file(file_path: &str) {
-    let obj_file_path = format!("{}.obj", file_path);
-    let exe_file_path = format!("{}.exe", file_path);
+    let obj_file_path = add_or_replace_extension(file_path, "obj");
+    let exe_file_path = add_or_replace_extension(file_path, "exe");
     let cmd = std::process::Command::new("golink")
-        .args(vec!["/console", "/entry", "_start", "/debug,", "coff", "/fo"])
+        .args(vec!["/console", "/entry", "_start", "/debug", "coff", "/fo"])
         .arg(&exe_file_path)
         .arg(obj_file_path)
         .arg("kernel32.dll")

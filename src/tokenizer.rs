@@ -23,7 +23,7 @@ pub struct ParserContext {
     pub constants: HashMap<String, ConstDef>,
     pub functions: HashMap<String, FunctionDef>,
     pub memories: HashMap<String, MemoryDef>,
-    pub vars: HashMap<usize, Vec<lexer::Word>>,
+    pub vars: HashMap<usize, Vec<String>>,
     pub total_memory_size: usize,
     known_constants: Vec<String>,
     known_memories: Vec<String>,
@@ -50,7 +50,7 @@ pub enum Op {
     MemRef(String),
     Function(String),
     FunctionRef(String),
-    Var(usize),
+    Var(Vec<String>),
     VarRef(String),
 
     End,
@@ -87,9 +87,11 @@ pub enum Intrinsic {
     Store8,
     Store16,
     Store32,
+    //TODO Store64
     Load8,
     Load16,
     Load32,
+    //TODO Load64
 }
 
 impl Display for Op {
@@ -339,10 +341,10 @@ fn parse_word_into_token(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, 
         while !next.is_empty() {
             let current_id = next.pop().unwrap();
             if let Some(vars) = ctx.vars.get(&current_id) {
-                if let Some(found) = vars.iter().find(|x| x.txt == word.txt) {
+                if let Some(found) = vars.iter().find(|x| word.txt.eq(*x)) {
                     return Some(Token {
                         word,
-                        op: Op::VarRef(found.txt.clone()),
+                        op: Op::VarRef(found.clone()),
                     });
                 }
             }
@@ -503,7 +505,7 @@ fn parse_vars(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, var_word: &
         eprintln!("{}: ERROR: Function name cannot contain any quotes", next_word);
         std::process::exit(1);
     }
-    let mut parts: Vec<lexer::Word> = vec![];
+    let mut parts: Vec<String> = vec![];
     let mut buffer: String = String::from("");
     let mut ptr: usize = 0;
     'MainLoop: while !words.is_empty() {
@@ -513,12 +515,7 @@ fn parse_vars(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, var_word: &
             let c = txt.chars().nth(i).unwrap();
             if c == '(' || c == ' ' || c == ')' {
                 if ptr > 0 {
-                    parts.push(lexer::Word {
-                        file: next_word.file.clone(),
-                        row: next_word.row,
-                        col: next_word.col,
-                        txt: buffer.clone(),
-                    });
+                    parts.push(buffer.clone());
                     buffer = String::from("");
                     ptr = 0;
                 }
@@ -534,12 +531,7 @@ fn parse_vars(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, var_word: &
             i += 1;
         }
         if ptr > 0 {
-            parts.push(lexer::Word {
-                file: next_word.file.clone(),
-                row: next_word.row,
-                col: next_word.col,
-                txt: String::from(buffer),
-            });
+            parts.push(String::from(buffer));
             buffer = String::from("");
             ptr = 0;
         }
@@ -555,7 +547,7 @@ fn parse_vars(ctx: &mut ParserContext, words: &mut Vec<lexer::Word>, var_word: &
             col: var_word.col,
             txt: var_word.txt.clone(),
         },
-        op: Op::Var(block_id),
+        op: Op::Var(parts.clone()),
     }
 }
 

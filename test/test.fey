@@ -1,0 +1,11 @@
+10 20 30
+
+//a b c
+var (a)
+  a dump    //30
+  var (b c)
+    b dump //10
+    a dump //30
+    c dump //20
+  end
+end

@@ -1,8 +1,9 @@
-use crate::linker;
+use crate::{add_or_replace_extension, linker};
 use linker::Instruction;
 use std::io::Write;
+
 pub fn process_program(file_path: &str, ctx: &linker::LinkerContext) {
-    let output_file_path = format!("{}.cfc", file_path);
+    let output_file_path = add_or_replace_extension(file_path, "cfc");
     let mut out_file = std::fs::File::create(&output_file_path).unwrap_or_else(|e| {
         eprintln!("ERROR: Could not open file for compilation: {}", e);
         std::process::exit(1);
@@ -35,6 +36,7 @@ pub fn stringify_op(op: &linker::LinkedToken) -> String {
         linker::LinkedTokenData::None => String::from(""),
         linker::LinkedTokenData::JumpAddr(addr) => format!("addr={}", addr),
         linker::LinkedTokenData::Count(count) => format!("count={}", count),
+        linker::LinkedTokenData::Index(index) => format!("index={}", index),
     };
     if add.is_empty() { base } else { format!("{}({})", base, add) }
 }

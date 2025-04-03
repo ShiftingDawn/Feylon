@@ -132,3 +132,29 @@ fn parse_program(file: String, lines: Vec<String>, skip_typecheck: bool) -> Link
     }
     linked
 }
+
+pub fn add_or_replace_extension(file_path: &str, extension: &str) -> String {
+    let mut file_parts: Vec<&str> = file_path.split('/').collect();
+    let mut file_name = file_parts
+        .last()
+        .unwrap_or_else(|| {
+            eprintln!("ERROR: Invalid file path: {}!", file_path);
+            std::process::exit(1);
+        })
+        .to_string();
+    if !file_name.contains('.') {
+        if extension.len() > 0 {
+            file_name = String::from(file_name) + "." + extension;
+        }
+    } else {
+        let mut file_name_parts: Vec<&str> = file_name.split('.').collect();
+        file_name_parts.pop();
+        if extension.len() > 0 {
+            file_name_parts.push(extension);
+        }
+        file_name = file_name_parts.join(".");
+    }
+    file_parts.pop();
+    file_parts.push(&file_name);
+    file_parts.join("/")
+}

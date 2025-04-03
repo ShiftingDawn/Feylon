@@ -369,10 +369,13 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
             }
             Instruction::PushVars => match op.data {
                 LinkedTokenData::Count(count) => {
+                    let mut vars = vec![];
                     for _ in 0..count {
                         let val = ctx.stack.pop().unwrap();
-                        ctx.vars.push(val);
+                        vars.push(val);
                     }
+                    vars.reverse();
+                    ctx.vars.append(&mut vars);
                     ctx.ptr += 1;
                 }
                 _ => {
@@ -381,7 +384,7 @@ pub fn check_types(linker_context: &linker::LinkerContext, allowed_overflow: usi
                 }
             },
             Instruction::ApplyVar => match op.data {
-                LinkedTokenData::JumpAddr(var_index) => {
+                LinkedTokenData::Index(var_index) => {
                     let real_index = ctx.vars.len() - 1 - var_index;
                     let var = ctx.vars[real_index].clone();
                     ctx.stack.push(var);
