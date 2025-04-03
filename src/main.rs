@@ -118,7 +118,8 @@ pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Resu
     let file = File::open(file_path)?;
     let mut content = String::new();
     BufReader::new(file).read_to_string(&mut content)?;
-    let lines: Vec<String> = content.split("\n").map(|x| x.to_string()).collect();
+    let mut lines: Vec<String> = content.lines().map(|x| x.to_string()).collect();
+    lines.push("".to_string());
     Ok(lines)
 }
 
