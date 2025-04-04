@@ -65,11 +65,30 @@ fn main() {
             }
         },
         "test" => {
+            let skip_typecheck = args.contains(&"--unsafe".to_string());
             let print_output = args.contains(&"--print".to_string());
+            let compiler_id = args
+                .iter()
+                .find_map(|x| {
+                    if x.starts_with("--use=") {
+                        let id = x.strip_prefix("--use=").unwrap();
+                        if id != "asm-win64" && id != "asm-elf64" && id != "simulate" {
+                            eprintln!("ERROR: Unknown compiler: {}", id);
+                            std::process::exit(1);
+                        }
+                        Some(id)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| {
+                    eprintln!("ERROR: Compiler to use was not defined. Use the --use=<id> option");
+                    std::process::exit(1);
+                });
             if args.contains(&"--all".to_string()) {
-                test::run_all_tests(self_path, last_arg, print_output)
+                test::run_all_tests(self_path, last_arg, print_output, skip_typecheck, compiler_id)
             } else {
-                test::test_program(self_path, last_arg, print_output);
+                test::test_program(self_path, last_arg, print_output, skip_typecheck, compiler_id);
             }
             std::process::exit(0);
         }
@@ -107,6 +126,8 @@ fn usage(self_path: &str) {
     println!("  test            Interpret and test the given program");
     println!("    Available options:");
     println!("      --all       Run all tests in the given directory; file_path must be a directory");
+    println!("      --use=<?>   Which compiler to use. Can be one of: simulate, asm-win64, asm-elf64");
+    println!("      --unsafe    Skip typechecking");
     println!("      --print     Print the program STDOUT and STDERR");
 }
 
@@ -118,8 +139,7 @@ pub fn read_file_contents(path: &str, relative_parent: Option<&str>) -> io::Resu
     let file = File::open(file_path)?;
     let mut content = String::new();
     BufReader::new(file).read_to_string(&mut content)?;
-    let mut lines: Vec<String> = content.lines().map(|x| x.to_string()).collect();
-    lines.push("".to_string());
+    let lines: Vec<String> = content.lines().map(|x| x.to_string()).collect();
     Ok(lines)
 }
 

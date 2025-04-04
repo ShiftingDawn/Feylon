@@ -12,7 +12,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "BITS 64").unwrap();
     writeln!(&mut out_file, "global _start").unwrap();
     writeln!(&mut out_file, "extern GetStdHandle").unwrap();
-    writeln!(&mut out_file, "extern WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "extern WriteFile").unwrap();
     writeln!(&mut out_file, "extern ExitProcess").unwrap();
     writeln!(&mut out_file, "section .data").unwrap();
     writeln!(&mut out_file, "    newline: db 13, 10, 0").unwrap();
@@ -41,15 +41,17 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
     writeln!(&mut out_file, "    mov ecx, -11").unwrap();
     writeln!(&mut out_file, "    call GetStdHandle").unwrap();
     writeln!(&mut out_file, "    mov rbx, rax").unwrap();
-    writeln!(&mut out_file, "    mov rdx, rdi").unwrap();
-    writeln!(&mut out_file, "    mov r9, 0").unwrap();
     writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
-    writeln!(&mut out_file, "    call WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "    mov rdx, rdi").unwrap();
+    writeln!(&mut out_file, "    lea r9, [rsp + 32]").unwrap();
+    writeln!(&mut out_file, "    mov qword [rsp + 32], 0").unwrap();
+    writeln!(&mut out_file, "    call WriteFile").unwrap();
+    writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
     writeln!(&mut out_file, "    mov rdx, newline").unwrap();
     writeln!(&mut out_file, "    mov r8, 2").unwrap();
-    writeln!(&mut out_file, "    xor r9, r9").unwrap();
-    writeln!(&mut out_file, "    mov rcx, rbx").unwrap();
-    writeln!(&mut out_file, "    call WriteConsoleA").unwrap();
+    writeln!(&mut out_file, "    lea r9, [rsp + 32]").unwrap();
+    writeln!(&mut out_file, "    mov qword [rsp + 32], 0").unwrap();
+    writeln!(&mut out_file, "    call WriteFile").unwrap();
     writeln!(&mut out_file, "    add rsp, 40").unwrap();
     writeln!(&mut out_file, "    ret").unwrap();
     writeln!(&mut out_file, "_start:").unwrap();
@@ -261,12 +263,12 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
                 }
                 Intrinsic::Load32 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
-                    writeln!(&mut out_file, "    movzx rbx, dword [rax]").unwrap();
+                    writeln!(&mut out_file, "    mov ebx, [rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
                 Intrinsic::Load64 => {
                     writeln!(&mut out_file, "    pop rax").unwrap();
-                    writeln!(&mut out_file, "    movzx rax, qword [rax]").unwrap();
+                    writeln!(&mut out_file, "    mov rbx,[rax]").unwrap();
                     writeln!(&mut out_file, "    push rbx").unwrap();
                 }
             },
@@ -342,6 +344,7 @@ pub fn process_program(file_path: &str, ctx: &LinkerContext) {
         }
     }
     writeln!(&mut out_file, "addr_exit:").unwrap();
+    writeln!(&mut out_file, "    sub rsp, 8").unwrap();
     writeln!(&mut out_file, "    xor rcx, rcx").unwrap();
     writeln!(&mut out_file, "    call ExitProcess").unwrap();
     out_file.flush().unwrap_or_else(|e| {

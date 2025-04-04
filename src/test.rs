@@ -1,4 +1,5 @@
-use crate::read_file_contents;
+use crate::{add_or_replace_extension, read_file_contents};
+use std::path::Path;
 
 struct TestFile {
     exit_code: i32,
@@ -6,15 +7,51 @@ struct TestFile {
     stderr: Vec<String>,
 }
 
-pub fn test_program(self_path: String, file_path: String, print: bool) {
+pub fn test_program(self_path: String, mut file_path: String, print: bool, skip_typecheck: bool, compiler: &str) {
+    let absolute_file_path = Path::new(file_path.as_str()).canonicalize().unwrap();
+    file_path = absolute_file_path.to_str().unwrap().to_string();
+    if compiler != "simulate" {
+        compile_test_program(self_path.clone(), file_path.clone(), skip_typecheck, compiler);
+    }
     let test_file = parse_test_file(&(file_path.clone() + ".txt"));
-    let cmd = std::process::Command::new(self_path)
-        .arg("simulate")
-        .arg(file_path.clone())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
-        .output();
-    match cmd {
+    if compiler == "simulate" {
+        let mut cmd = std::process::Command::new(self_path);
+        cmd.arg("simulate").arg(file_path.clone());
+        if skip_typecheck {
+            cmd.arg("--unsafe");
+        }
+        validate_tested_program(&mut cmd, test_file, file_path, print);
+    } else {
+        let extension = if compiler == "asm-win64" { "exe" } else { "" };
+        let test_exe_path = add_or_replace_extension(&file_path, extension);
+        let mut cmd = std::process::Command::new(test_exe_path);
+        validate_tested_program(&mut cmd, test_file, file_path, print);
+    }
+}
+
+fn compile_test_program(self_path: String, file_path: String, skip_typecheck: bool, compiler: &str) {
+    let mut cmd = std::process::Command::new(self_path);
+    cmd.arg("compile").arg(format!("--use={}", compiler));
+    if skip_typecheck {
+        cmd.arg("--unsafe");
+    }
+    cmd.arg(file_path.clone()).stdout(std::process::Stdio::inherit()).stderr(std::process::Stdio::inherit());
+    match cmd.output() {
+        Ok(_) => {
+            eprintln!("SUCCESS: Successfully compiled test program {}!", file_path);
+            eprintln!("SUCCESS: Binary is located at {}!", file_path);
+        }
+        Err(err) => {
+            eprintln!("ERROR: Could not compile test program {}!", file_path);
+            eprintln!("ERROR: {}", err);
+            std::process::exit(1);
+        }
+    }
+}
+
+fn validate_tested_program(cmd: &mut std::process::Command, test_file: TestFile, file_path: String, print: bool) {
+    let output = cmd.output();
+    match output {
         Ok(output) => {
             match output.status.code() {
                 Some(code) => {
@@ -130,13 +167,13 @@ fn test_text_output(expected: Vec<String>, actual: Vec<u8>) -> Option<(bool, Vec
         return Some((true, vec![]));
     }
     if let Ok(actual_string) = String::from_utf8(actual.clone()) {
-        let splitted: Vec<String> = actual_string.split('\n').map(|x| x.to_string()).collect();
+        let splitted: Vec<String> = actual_string.lines().map(|x| x.to_string()).collect();
         return Some((&expected == &splitted, splitted));
     }
     None
 }
 
-pub fn run_all_tests(self_path: String, file_path: String, print: bool) {
+pub fn run_all_tests(self_path: String, file_path: String, print: bool, skip_typecheck: bool, compiler: &str) {
     let path = std::path::Path::new(file_path.as_str());
     if !path.exists() {
         eprintln!("ERROR: Directory does not exist: {}", file_path);
@@ -170,6 +207,10 @@ pub fn run_all_tests(self_path: String, file_path: String, print: bool) {
         if print {
             cmd_builder.arg("--print");
         }
+        if skip_typecheck {
+            cmd_builder.arg("--unsafe");
+        }
+        cmd_builder.arg(format!("--use={}", compiler));
         let cmd = cmd_builder
             .arg(test_path_string.clone())
             .stdout(std::process::Stdio::piped())

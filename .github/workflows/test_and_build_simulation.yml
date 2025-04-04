@@ -1,4 +1,4 @@
-name: test_and_build_windows_amd64
+name: test_and_build_simulation
 
 on:
   push:
@@ -11,11 +11,11 @@ env:
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Build
       run: cargo build --verbose
     - name: Run tests
       working-directory: .
-      run: cargo run -- test --all --print --use=asm-win64 test
+      run: cargo run -- test --all --use=simulate --print test
