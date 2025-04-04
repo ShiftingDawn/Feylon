@@ -13,9 +13,24 @@ jobs:
   test:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      working-directory: .
-      run: cargo run -- test --all --print --use=asm-win64 test
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/setup-nasm@v1
+        with:
+          platform: win64
+
+      - name: Download Golink.zip
+        run: |
+          Invoke-WebRequest -Uri "http://www.godevtool.com/Golink.zip" -OutFile "Golink.zip"
+      - name: Extract Golink.zip
+        run: |
+          Expand-Archive -Path "Golink.zip" -DestinationPath "$env:USERPROFILE\golink"
+      - name: Add Golink to PATH
+        run: |
+          echo "$env:USERPROFILE\golink" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        working-directory: .
+        run: cargo run -- test --all --print --use=asm-win64 test
