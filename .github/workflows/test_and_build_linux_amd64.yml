@@ -13,9 +13,14 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      working-directory: .
-      run: cargo run -- test --all --use=asm-elf64 --print test
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/setup-nasm@v1
+        with:
+          platform: linux
+
+      - name: Build
+        run: cargo build --verbose
+      - name: Run tests
+        working-directory: .
+        run: cargo run -- test --all --use=asm-elf64 --print test
